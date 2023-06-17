@@ -9,9 +9,10 @@ import (
 )
 
 type viewComponent struct {
-	components []Component
-	size       *image.Point
-	style      ViewStyle
+	components  []Component
+	size        *image.Point
+	style       ViewStyle
+	extraStyles []ViewStyle
 }
 type View = *viewComponent
 type ViewStyle struct {
@@ -106,13 +107,9 @@ func getDefaultViewStyle() ViewStyle {
 	}
 }
 
-func NewViewWithStyle(components []Component, styles ...ViewStyle) View {
+func NewView(components []Component, styles ...ViewStyle) View {
 	var style = mergeViewStyle(getDefaultViewStyle(), styles)
-	return &viewComponent{components: components, style: style}
-}
-
-func NewView(components []Component) View {
-	return &viewComponent{components: components, style: getDefaultViewStyle()}
+	return &viewComponent{components: components, style: style, extraStyles: []ViewStyle{}}
 }
 
 /* return (top, right, bottom, left) */
@@ -156,12 +153,24 @@ func mixColorCode(r1, g1, b1, a1, r2, g2, b2, a2 uint32, rate float32) (uint32, 
 	var a = uint32(int64(a2) - int64(float64(int64(a2)-int64(a1))*float64(rate)))
 	return r, g, b, a
 }
+func (v View) PushStyle(style ViewStyle) {
+	v.extraStyles = append(v.extraStyles, style)
+}
+func (v View) PopStyle() {
+	if len(v.extraStyles) > 0 {
+		v.extraStyles = v.extraStyles[:len(v.extraStyles)-1]
+	}
+}
+func (v View) GetStylesCount() int {
+	return len(v.extraStyles)
+}
 
 func (v View) getContentSize() image.Point {
 	var x, y = 0, 0
+	var style = mergeViewStyle(v.style, v.extraStyles)
 	for _, component := range v.components {
 		var contentSize = component.GetSize()
-		if v.style.Direction == Horizontal {
+		if style.Direction == Horizontal {
 			if y <= contentSize.Y {
 				y = contentSize.Y
 			}
@@ -173,7 +182,7 @@ func (v View) getContentSize() image.Point {
 			y += contentSize.Y
 		}
 	}
-	for _, str := range []string{v.style.Padding, v.style.Margin, v.style.BorderWidth} {
+	for _, str := range []string{style.Padding, style.Margin, style.BorderWidth} {
 		var top, right, bottom, left = strToArea(str)
 		x += left + right
 		y += top + bottom
@@ -185,8 +194,9 @@ func (v View) GetSize() image.Point {
 	var point = v.getContentSize()
 	var x = point.X
 	var y = point.Y
-	var width, _ = strconv.Atoi(v.style.Width)
-	var height, _ = strconv.Atoi(v.style.Height)
+	var style = mergeViewStyle(v.style, v.extraStyles)
+	var width, _ = strconv.Atoi(style.Width)
+	var height, _ = strconv.Atoi(style.Height)
 	if x < width {
 		x = width
 	}
@@ -197,10 +207,11 @@ func (v View) GetSize() image.Point {
 }
 
 func (v View) Draw(screen *ebiten.Image, x, y int) {
-	var marginTop, marginRight, marginBottom, marginLeft = strToArea(v.style.Margin)
-	var borderTop, borderRight, borderBottom, borderLeft = strToArea(v.style.BorderWidth)
-	var paddingTop, paddingRight, paddingBottom, paddingLeft = strToArea(v.style.Padding)
-	var radiusTopLeft, radiusTopRight, radiusBottomRight, radiusBottomLeft = strToArea(v.style.Radius)
+	var style = mergeViewStyle(v.style, v.extraStyles)
+	var marginTop, marginRight, marginBottom, marginLeft = strToArea(style.Margin)
+	var borderTop, borderRight, borderBottom, borderLeft = strToArea(style.BorderWidth)
+	var paddingTop, paddingRight, paddingBottom, paddingLeft = strToArea(style.Padding)
+	var radiusTopLeft, radiusTopRight, radiusBottomRight, radiusBottomLeft = strToArea(style.Radius)
 
 	var marginWidth = marginLeft + marginRight
 	var borderWidth = borderLeft + borderRight
@@ -233,14 +244,14 @@ func (v View) Draw(screen *ebiten.Image, x, y int) {
 		radiusBottomLeft = sizeMin
 	}
 
-	if v.style.PositionHorizontal == Center {
+	if style.PositionHorizontal == Center {
 		positionH = 0.5
-	} else if v.style.PositionHorizontal == Last {
+	} else if style.PositionHorizontal == Last {
 		positionH = 1
 	}
-	if v.style.PositionVertical == Center {
+	if style.PositionVertical == Center {
 		positionV = 0.5
-	} else if v.style.PositionVertical == Last {
+	} else if style.PositionVertical == Last {
 		positionV = 1
 	}
 
@@ -249,7 +260,7 @@ func (v View) Draw(screen *ebiten.Image, x, y int) {
 
 	// draw border
 	{
-		var color1, color2, color3, color4 = strToColorCodes(v.style.BorderColor)
+		var color1, color2, color3, color4 = strToColorCodes(style.BorderColor)
 		var r1, g1, b1, a1 = colorCodeToColor(color1).RGBA()
 		var r2, g2, b2, a2 = colorCodeToColor(color2).RGBA()
 		var r3, g3, b3, a3 = colorCodeToColor(color3).RGBA()
@@ -314,7 +325,7 @@ func (v View) Draw(screen *ebiten.Image, x, y int) {
 
 	// draw base
 	{
-		var color1, color2, color3, color4 = strToColorCodes(v.style.BackgroundColor)
+		var color1, color2, color3, color4 = strToColorCodes(style.BackgroundColor)
 		var r1, g1, b1, a1 = colorCodeToColor(color1).RGBA()
 		var r2, g2, b2, a2 = colorCodeToColor(color2).RGBA()
 		var r3, g3, b3, a3 = colorCodeToColor(color3).RGBA()
@@ -373,7 +384,7 @@ func (v View) Draw(screen *ebiten.Image, x, y int) {
 		var componentSize = component.GetSize()
 		var __x = int(positionH * float64((contentSize.X-marginWidth-borderWidth-paddingWidth)-componentSize.X))
 		var __y = int(positionV * float64((contentSize.Y-marginHeight-borderHeight-paddingHeight)-componentSize.Y))
-		if v.style.Direction == Horizontal {
+		if style.Direction == Horizontal {
 			__x = 0
 		} else {
 			__y = 0

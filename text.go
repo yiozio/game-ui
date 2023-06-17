@@ -68,11 +68,7 @@ func getDefaultTextStyle() TextStyle {
 	}
 }
 
-func NewText(str string) Text {
-	return &textComponent{str: str, size: nil, style: getDefaultTextStyle()}
-}
-
-func NewTextWithStyle(str string, styles ...TextStyle) Text {
+func NewText(str string, styles ...TextStyle) Text {
 	var style = mergeTextStyle(getDefaultTextStyle(), styles)
 	return &textComponent{str: str, size: nil, style: style}
 }
