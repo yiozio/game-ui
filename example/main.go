@@ -25,10 +25,22 @@ func init() {
 
 type Game struct {
 	tickCount uint16
+	control   ControlMode
 }
 
+type ControlMode = int
+
+const (
+	Mouse   ControlMode = 0
+	Gamepad ControlMode = 1
+	Touch   ControlMode = 2
+)
+
 func NewGame() ebiten.Game {
-	var g = &Game{}
+	var g = &Game{
+		tickCount: 0,
+		control:   Mouse,
+	}
 	g.init()
 	return g
 }
@@ -47,8 +59,41 @@ func (g *Game) Update() error {
 	} else {
 		g.tickCount += 1
 	}
+
+	if g.control == Mouse {
+		var mouseX, mouseY = ebiten.CursorPosition()
+		if mouseX != 0 || mouseY != 0 {
+			var index = -1
+			for i, view := range startMenuItems {
+				var actionAreaMinPoint, actionAreaMaxPoint = view.GetActionArea()
+				if actionAreaMinPoint.X <= mouseX && mouseX <= actionAreaMaxPoint.X &&
+					actionAreaMinPoint.Y <= mouseY && mouseY <= actionAreaMaxPoint.Y {
+					index = i
+					break
+				}
+			}
+			selectedStartMenuItemIndex = index
+			if index >= 0 && ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
+				switch index {
+				case 0:
+					debugMessage = "START"
+				case 1:
+					debugMessage = "SETTING"
+				case 2:
+					debugMessage = "EXIT"
+				}
+			}
+		}
+	}
+	if g.control == Touch {
+	}
+	if g.control == Gamepad {
+	}
+
 	return nil
 }
+
+var debugMessage = ""
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	// draw background
@@ -83,31 +128,17 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	var bgColor2 = "#5599cc00"
 
 	// draw window
-	var mouseX, mouseY = ebiten.CursorPosition()
-	var activeView = []game_ui.View{
-		startView,
-		settingView,
-		exitView,
-	}
-	if mouseX != 0 || mouseY != 0 {
-		for i, view := range activeView {
-			var actionAreaMinPoint, actionAreaMaxPoint = view.GetActionArea()
-			if mouseX < actionAreaMinPoint.X || mouseX > actionAreaMaxPoint.X ||
-				mouseY < actionAreaMinPoint.Y || mouseY > actionAreaMaxPoint.Y {
-				ebitenutil.DebugPrintAt(screen, "off", 300, i*15)
-				view.PopStyle()
-				continue
-			}
-			ebitenutil.DebugPrintAt(screen, "on", 300, i*15)
-			if startView.GetStylesCount() > 0 {
-				view.PopStyle()
-			}
-			view.ReplaceStyle(0, game_ui.ViewStyle{
+	for i := range startMenuItems {
+		if i == selectedStartMenuItemIndex {
+			startMenuItems[i].ReplaceStyle(0, game_ui.ViewStyle{
 				BorderColor:     bColor1 + " " + bColor2 + " " + bColor2 + " " + bColor1,
 				BackgroundColor: bgColor1 + " " + bgColor2 + " " + bgColor2 + " " + bgColor1,
 			})
+			ebitenutil.DebugPrintAt(screen, "on", 300, i*15)
+		} else {
+			startMenuItems[i].PopStyle()
+			ebitenutil.DebugPrintAt(screen, "off", 300, i*15)
 		}
-
 	}
 
 	w := game_ui.NewWindow([]game_ui.Component{game_ui.NewView([]game_ui.Component{
@@ -121,7 +152,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		PositionVertical: game_ui.Center,
 	})})
 	w.Draw(screen, 0, 0)
-	for i, view := range activeView {
+	for i, view := range startMenuItems {
 		var actionAreaMinPoint, actionAreaMaxPoint = view.GetActionArea()
 		ebitenutil.DebugPrintAt(screen,
 			strconv.Itoa(actionAreaMinPoint.X)+","+
@@ -129,7 +160,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 				strconv.Itoa(actionAreaMaxPoint.X)+","+
 				strconv.Itoa(actionAreaMaxPoint.Y), 100, i*15)
 	}
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f\nX:%d, Y:%d", ebiten.ActualTPS(), ebiten.ActualFPS(), mouseX, mouseY))
+	var mouseX, mouseY = ebiten.CursorPosition()
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f\nX:%d, Y:%d\n"+debugMessage, ebiten.ActualTPS(), ebiten.ActualFPS(), mouseX, mouseY))
 }
 
 func main() {
