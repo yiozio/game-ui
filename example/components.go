@@ -25,10 +25,31 @@ var titleText = game_ui.NewText("SAMPLE", game_ui.TextStyle{
 var titleView = game_ui.NewView([]game_ui.Component{titleText}, game_ui.ViewStyle{Margin: "10 50 20"})
 
 var startText = game_ui.NewText("START")
-var startView = game_ui.NewView([]game_ui.Component{startText}, game_ui.ViewStyle{Margin: "10 50"})
+var startView = game_ui.NewView([]game_ui.Component{startText}, game_ui.ViewStyle{
+	Margin:          "5 45",
+	Padding:         "2 40 1 10",
+	BorderWidth:     "1 0 1 1",
+	BorderColor:     "#00000000",
+	BackgroundColor: "#00000000",
+	Radius:          "20 0 0 20",
+})
 
 var settingText = game_ui.NewText("SETTING")
-var settingView = game_ui.NewView([]game_ui.Component{settingText}, game_ui.ViewStyle{Margin: "10 50"})
+var settingView = game_ui.NewView([]game_ui.Component{settingText}, game_ui.ViewStyle{
+	Margin:          "5 45",
+	Padding:         "2 40 1 10",
+	BorderWidth:     "1 0 1 1",
+	BorderColor:     "#00000000",
+	BackgroundColor: "#00000000",
+	Radius:          "20 0 0 20",
+})
 
 var exitText = game_ui.NewText("EXIT")
-var exitView = game_ui.NewView([]game_ui.Component{exitText}, game_ui.ViewStyle{Margin: "10 50"})
+var exitView = game_ui.NewView([]game_ui.Component{exitText}, game_ui.ViewStyle{
+	Margin:          "5 45",
+	Padding:         "2 40 1 10",
+	BorderWidth:     "1 0 1 1",
+	BorderColor:     "#00000000",
+	BackgroundColor: "#00000000",
+	Radius:          "20 0 0 20",
+})

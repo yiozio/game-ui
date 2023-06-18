@@ -23,7 +23,9 @@ func init() {
 	emptyImage.Fill(color.White)
 }
 
-type Game struct{}
+type Game struct {
+	tickCount uint16
+}
 
 func NewGame() ebiten.Game {
 	var g = &Game{}
@@ -40,10 +42,13 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func (g *Game) Update() error {
+	if g.tickCount == 0xffff {
+		g.tickCount = 0
+	} else {
+		g.tickCount += 1
+	}
 	return nil
 }
-
-var n = 0
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	// draw background
@@ -67,37 +72,44 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		})
 	}
 
-	var m = n
-	if m > 0x6f {
-		m = (0x6f * 2) - n
+	var m = int64(0xe * ((g.tickCount / 2) % 16))
+	if m > (0xe * 8) {
+		m = 0xd*16 - m
 	}
-	var bColor1 = "#ffffff" + strconv.FormatInt(0x190+int64(m), 16)[1:]
+	m -= 1
+	var bColor1 = "#ffffff" + strconv.FormatInt(0x190+m, 16)[1:]
 	var bColor2 = "#ffffff00"
-	var bgColor1 = "#5599cc" + strconv.FormatInt(0x150+int64(m), 16)[1:]
+	var bgColor1 = "#5599cc" + strconv.FormatInt(0x150+m, 16)[1:]
 	var bgColor2 = "#5599cc00"
-	if n >= 0xc0 {
-		n = 0
-	} else {
-		n += 0xd
-	}
-	if startView.GetStylesCount() > 0 {
-		startView.PopStyle()
-	} else {
-		startView.PushStyle(game_ui.ViewStyle{
-			Margin:          "5 45",
-			Padding:         "2 40 1 10",
-			BorderWidth:     "1 0 1 1",
-			BorderColor:     "#ffffff99 #ffffff00 #ffffff00 #ffffff99",
-			BackgroundColor: "#5599cc55 #5599cc00 #5599cc00 #5599cc55",
-			Radius:          "20 0 0 20",
-		})
-	}
-	startView.PushStyle(game_ui.ViewStyle{
-		BorderColor:     bColor1 + " " + bColor2 + " " + bColor2 + " " + bColor1,
-		BackgroundColor: bgColor1 + " " + bgColor2 + " " + bgColor2 + " " + bgColor1,
-	})
 
 	// draw window
+	var mouseX, mouseY = ebiten.CursorPosition()
+	var activeView = []game_ui.View{
+		startView,
+		settingView,
+		exitView,
+	}
+	if mouseX != 0 || mouseY != 0 {
+		for i, view := range activeView {
+			var actionAreaMinPoint, actionAreaMaxPoint = view.GetActionArea()
+			if mouseX < actionAreaMinPoint.X || mouseX > actionAreaMaxPoint.X ||
+				mouseY < actionAreaMinPoint.Y || mouseY > actionAreaMaxPoint.Y {
+				ebitenutil.DebugPrintAt(screen, "off", 300, i*15)
+				view.PopStyle()
+				continue
+			}
+			ebitenutil.DebugPrintAt(screen, "on", 300, i*15)
+			if startView.GetStylesCount() > 0 {
+				view.PopStyle()
+			}
+			view.ReplaceStyle(0, game_ui.ViewStyle{
+				BorderColor:     bColor1 + " " + bColor2 + " " + bColor2 + " " + bColor1,
+				BackgroundColor: bgColor1 + " " + bgColor2 + " " + bgColor2 + " " + bgColor1,
+			})
+		}
+
+	}
+
 	w := game_ui.NewWindow([]game_ui.Component{game_ui.NewView([]game_ui.Component{
 		titleView,
 		startView,
@@ -109,7 +121,15 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		PositionVertical: game_ui.Center,
 	})})
 	w.Draw(screen, 0, 0)
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f", ebiten.ActualTPS(), ebiten.ActualFPS()))
+	for i, view := range activeView {
+		var actionAreaMinPoint, actionAreaMaxPoint = view.GetActionArea()
+		ebitenutil.DebugPrintAt(screen,
+			strconv.Itoa(actionAreaMinPoint.X)+","+
+				strconv.Itoa(actionAreaMinPoint.Y)+":"+
+				strconv.Itoa(actionAreaMaxPoint.X)+","+
+				strconv.Itoa(actionAreaMaxPoint.Y), 100, i*15)
+	}
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f\nX:%d, Y:%d", ebiten.ActualTPS(), ebiten.ActualFPS(), mouseX, mouseY))
 }
 
 func main() {

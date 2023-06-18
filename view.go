@@ -9,10 +9,12 @@ import (
 )
 
 type viewComponent struct {
-	components  []Component
-	size        *image.Point
-	style       ViewStyle
-	extraStyles []ViewStyle
+	components         []Component
+	size               *image.Point
+	style              ViewStyle
+	extraStyles        []ViewStyle
+	actionAreaMinPoint image.Point
+	actionAreaMaxPoint image.Point
 }
 type View = *viewComponent
 type ViewStyle struct {
@@ -161,6 +163,13 @@ func (v View) PopStyle() {
 		v.extraStyles = v.extraStyles[:len(v.extraStyles)-1]
 	}
 }
+func (v View) ReplaceStyle(position int, style ViewStyle) {
+	if position >= v.GetStylesCount() {
+		v.extraStyles = append(v.extraStyles, style)
+	} else {
+		v.extraStyles[position] = style
+	}
+}
 func (v View) GetStylesCount() int {
 	return len(v.extraStyles)
 }
@@ -206,6 +215,10 @@ func (v View) GetSize() image.Point {
 	return image.Point{X: x, Y: y}
 }
 
+func (v View) GetActionArea() (image.Point, image.Point) {
+	return v.actionAreaMinPoint, v.actionAreaMaxPoint
+}
+
 func (v View) Draw(screen *ebiten.Image, x, y int) {
 	var style = mergeViewStyle(v.style, v.extraStyles)
 	var marginTop, marginRight, marginBottom, marginLeft = strToArea(style.Margin)
@@ -226,22 +239,22 @@ func (v View) Draw(screen *ebiten.Image, x, y int) {
 	var positionH float64 = 0
 	var positionV float64 = 0
 
-	var sizeMin = size.X - marginWidth - borderWidth
-	if (size.Y - marginHeight - borderHeight) < sizeMin {
-		sizeMin = size.Y - marginHeight - borderHeight
+	var radiusMin = size.X - marginWidth - borderWidth
+	if (size.Y - marginHeight - borderHeight) < radiusMin {
+		radiusMin = size.Y - marginHeight - borderHeight
 	}
-	sizeMin /= 2
-	if sizeMin < radiusTopLeft {
-		radiusTopLeft = sizeMin
+	radiusMin /= 2
+	if radiusMin < radiusTopLeft {
+		radiusTopLeft = radiusMin
 	}
-	if sizeMin < radiusTopRight {
-		radiusTopRight = sizeMin
+	if radiusMin < radiusTopRight {
+		radiusTopRight = radiusMin
 	}
-	if sizeMin < radiusBottomRight {
-		radiusBottomRight = sizeMin
+	if radiusMin < radiusBottomRight {
+		radiusBottomRight = radiusMin
 	}
-	if sizeMin < radiusBottomLeft {
-		radiusBottomLeft = sizeMin
+	if radiusMin < radiusBottomLeft {
+		radiusBottomLeft = radiusMin
 	}
 
 	if style.PositionHorizontal == Center {
@@ -257,6 +270,9 @@ func (v View) Draw(screen *ebiten.Image, x, y int) {
 
 	var contentLeft = int(positionH * float64(size.X-contentSize.X))
 	var contentTop = int(positionV * float64(size.Y-contentSize.Y))
+
+	v.actionAreaMinPoint = image.Point{X: x + marginLeft, Y: y + marginTop}
+	v.actionAreaMaxPoint = image.Point{X: v.actionAreaMinPoint.X + size.X - marginWidth, Y: v.actionAreaMinPoint.Y + size.Y - marginHeight}
 
 	// draw border
 	{
@@ -289,19 +305,19 @@ func (v View) Draw(screen *ebiten.Image, x, y int) {
 			path.Close()
 
 			var vs, is = path.AppendVerticesAndIndicesForFilling(nil, nil)
-			var maxX, minX, maxY, minY float32 = 0, 0, 0, 0
+			var minX, maxX, minY, maxY float32 = 0, 0, 0, 0
 			for i := range vs {
-				if maxX > vs[i].DstX {
-					maxX = vs[i].DstX
-				}
 				if minX < vs[i].DstX {
 					minX = vs[i].DstX
 				}
-				if maxY > vs[i].DstY {
-					maxY = vs[i].DstY
+				if maxX > vs[i].DstX {
+					maxX = vs[i].DstX
 				}
 				if minY < vs[i].DstY {
 					minY = vs[i].DstY
+				}
+				if maxY > vs[i].DstY {
+					maxY = vs[i].DstY
 				}
 			}
 			for i := range vs {

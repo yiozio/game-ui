@@ -111,10 +111,6 @@ func (t Text) GetSize() image.Point {
 }
 
 func (t Text) Draw(screen *ebiten.Image, x, y int) {
-	// m := bitmapfont.Face.Metrics()
-	// bounds := text.BoundString(bitmapfont.Face, "a")
-	// x += bounds.Dx() - 2
-	// y += int(float64(bounds.Dy()) * float64(m.Ascent) / float64(m.Height))
 	t.GetSize()
 	var font = t.style.Font
 	x += font.xAdjustment
