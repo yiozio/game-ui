@@ -27,6 +27,7 @@ func init() {
 type Game struct {
 	tickCount                  uint16
 	control                    ControlMode
+	justPressedTouchIds        []ebiten.TouchID
 	gamepadIds                 []ebiten.GamepadID
 	gamepadJustPressedButtons  buttons
 	selectedStartMenuItemIndex int
@@ -62,15 +63,18 @@ func (g *Game) Update() error {
 	} else {
 		g.tickCount += 1
 	}
-
-	g.gamepadIds = inpututil.AppendJustConnectedGamepadIDs(g.gamepadIds)
-
 	var action = false
+
+	// get input
 	var isMouseClicked = inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft)
 	g.gamepadJustPressedButtons = []ebiten.GamepadButton{}
+	g.gamepadIds = inpututil.AppendJustConnectedGamepadIDs(g.gamepadIds)
 	if len(g.gamepadIds) > 0 {
 		g.gamepadJustPressedButtons = inpututil.AppendJustPressedGamepadButtons(g.gamepadIds[0], nil)
 	}
+	g.justPressedTouchIds = inpututil.AppendJustPressedTouchIDs(nil)
+
+	// set input
 	if g.control == Mouse {
 		var mouseX, mouseY = ebiten.CursorPosition()
 		if mouseX != 0 || mouseY != 0 {
@@ -91,6 +95,19 @@ func (g *Game) Update() error {
 		}
 	}
 	if g.control == Touch {
+		action = false
+		if len(g.justPressedTouchIds) > 0 {
+			var touchX, touchY = ebiten.TouchPosition(g.justPressedTouchIds[0])
+			for i, view := range startMenuItems {
+				var actionAreaMinPoint, actionAreaMaxPoint = view.GetActionArea()
+				if actionAreaMinPoint.X <= touchX && touchX <= actionAreaMaxPoint.X &&
+					actionAreaMinPoint.Y <= touchY && touchY <= actionAreaMaxPoint.Y {
+					selectedStartMenuItemIndex = i
+					action = true
+					break
+				}
+			}
+		}
 	}
 	if g.control == Gamepad {
 		if g.gamepadJustPressedButtons.findIndex(buttonSetting.Up) >= 0 {
@@ -107,9 +124,15 @@ func (g *Game) Update() error {
 		action = g.gamepadJustPressedButtons.findIndex(buttonSetting.Action) >= 0
 	}
 
+	// switch control mode
 	if g.control != Mouse && isMouseClicked {
 		selectedStartMenuItemIndex = -1
+		action = false
 		g.control = Mouse
+	} else if g.control != Touch && len(g.justPressedTouchIds) > 0 {
+		selectedStartMenuItemIndex = -1
+		action = false
+		g.control = Touch
 	} else if g.control != Gamepad &&
 		(g.gamepadJustPressedButtons.findIndex(buttonSetting.Up) >= 0 ||
 			g.gamepadJustPressedButtons.findIndex(buttonSetting.Down) >= 0 ||
@@ -120,14 +143,20 @@ func (g *Game) Update() error {
 		g.control = Gamepad
 	}
 
-	if selectedStartMenuItemIndex >= 0 && action {
-		switch selectedStartMenuItemIndex {
-		case 0:
-			debugMessage = "START"
-		case 1:
-			debugMessage = "SETTING"
-		case 2:
-			debugMessage = "EXIT"
+	{ // debug
+		if len(g.gamepadJustPressedButtons) > 0 {
+			buttonInput = strconv.Itoa(int(g.gamepadJustPressedButtons[0]))
+		}
+
+		if selectedStartMenuItemIndex >= 0 && action {
+			switch selectedStartMenuItemIndex {
+			case 0:
+				debugMessage = "START"
+			case 1:
+				debugMessage = "SETTING"
+			case 2:
+				debugMessage = "EXIT"
+			}
 		}
 	}
 
