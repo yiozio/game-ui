@@ -33,7 +33,18 @@ var (
 		Right:  ebiten.GamepadButton15,
 		Action: ebiten.GamepadButton0,
 	}
+	control ControlMode = Mouse
 )
+
+type ControlMode = int
+
+const (
+	Mouse   ControlMode = 0
+	Gamepad ControlMode = 1
+	Touch   ControlMode = 2
+)
+
+var actioned = false
 
 type buttons []ebiten.GamepadButton
 

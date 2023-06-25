@@ -5,10 +5,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"github.com/hajimehoshi/ebiten/v2/vector"
 	"image"
 	"image/color"
-	"math"
 	"strconv"
 	"time"
 )
@@ -27,7 +25,6 @@ func init() {
 
 type Game struct {
 	now                       int64
-	control                   ControlMode
 	justPressedTouchIds       []ebiten.TouchID
 	gamepadIds                []ebiten.GamepadID
 	gamepadJustPressedButtons buttons
@@ -38,14 +35,6 @@ type Game struct {
 	effectAt                  int64
 }
 
-type ControlMode = int
-
-const (
-	Mouse   ControlMode = 0
-	Gamepad ControlMode = 1
-	Touch   ControlMode = 2
-)
-
 func NewGame() ebiten.Game {
 	var g = &Game{}
 	g.init()
@@ -55,26 +44,27 @@ func NewGame() ebiten.Game {
 func (g *Game) init() {
 	g.selectedStartMenuIndex = -1
 	g.now = time.Now().UnixMilli()
-	g.control = Mouse
 	g.startMenu = NewStartMenu(
-		g.Start,
-		g.Setting,
-		g.Exit,
+		func() {
+			debugMessage = "START"
+		},
+		func() {
+			g.selectedStartMenuIndex = 1
+			g.settingMenu = NewSettingMenu(
+				func() { g.selectedStartMenuIndex = -1; g.settingMenu = nil },
+				g.menuEffect,
+				func() bool { return g.selectedStartMenuIndex != 1 },
+				control,
+			)
+			debugMessage = "SETTING"
+		},
+		func() {
+			debugMessage = "EXIT"
+		},
 		g.menuEffect,
 		func() bool {
 			return g.selectedStartMenuIndex >= 0
 		})
-}
-func (g *Game) Start() {
-	debugMessage = "START"
-}
-func (g *Game) Setting() {
-	g.selectedStartMenuIndex = 1
-	g.settingMenu = NewSettingMenu(func() { g.selectedStartMenuIndex = -1; g.settingMenu = nil }, g.menuEffect, func() bool { return g.selectedStartMenuIndex != 1 }, g.control)
-	debugMessage = "SETTING"
-}
-func (g *Game) Exit() {
-	debugMessage = "EXIT"
 }
 
 func (g *Game) menuEffect(x, y int) {
@@ -82,12 +72,9 @@ func (g *Game) menuEffect(x, y int) {
 	g.effectAt = g.now
 }
 
-func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
-	return 640, 480
-}
-
 func (g *Game) Update() error {
 	g.now = time.Now().UnixMilli()
+	actioned = false
 
 	// get input
 	var isMouseClicked = inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft)
@@ -99,7 +86,7 @@ func (g *Game) Update() error {
 	g.justPressedTouchIds = inpututil.AppendJustPressedTouchIDs(nil)
 
 	// set input
-	if g.control == Mouse {
+	if control == Mouse {
 		var mouseX, mouseY = ebiten.CursorPosition()
 		if mouseX != 0 || mouseY != 0 {
 			g.startMenu.OnMouseMove(mouseX, mouseY, isMouseClicked)
@@ -108,7 +95,7 @@ func (g *Game) Update() error {
 			}
 		}
 	}
-	if g.control == Touch {
+	if control == Touch {
 		if len(g.justPressedTouchIds) > 0 {
 			var touchX, touchY = ebiten.TouchPosition(g.justPressedTouchIds[0])
 			g.startMenu.OnTouch(touchX, touchY)
@@ -117,7 +104,7 @@ func (g *Game) Update() error {
 			}
 		}
 	}
-	if g.control == Gamepad {
+	if control == Gamepad {
 		if g.gamepadJustPressedButtons.findIndex(buttonSetting.Up) >= 0 {
 			g.startMenu.OnGamepadUp()
 			if g.settingMenu != nil {
@@ -130,37 +117,47 @@ func (g *Game) Update() error {
 			}
 		}
 		if g.gamepadJustPressedButtons.findIndex(buttonSetting.Action) >= 0 {
-			g.startMenu.OnGamepadAction()
-			if g.settingMenu != nil {
+			actioned = true
+			if g.settingMenu == nil {
+				g.startMenu.OnGamepadAction()
+			} else if g.settingMenu != nil {
 				g.settingMenu.OnGamepadAction()
 			}
 		}
 	}
 
 	// switch control mode
-	if g.control != Mouse && isMouseClicked {
-		g.control = Mouse
-		g.startMenu.ChangeControlMode(g.control)
+	if control != Mouse && isMouseClicked {
+		control = Mouse
+		g.startMenu.ChangeControlMode(control)
 		if g.settingMenu != nil {
-			g.settingMenu.ChangeControlMode(g.control)
+			g.settingMenu.ChangeControlMode(control)
 		}
-	} else if g.control != Touch && len(g.justPressedTouchIds) > 0 {
-		g.control = Touch
-		g.startMenu.ChangeControlMode(g.control)
+	} else if control != Touch && len(g.justPressedTouchIds) > 0 {
+		control = Touch
+		g.startMenu.ChangeControlMode(control)
 		if g.settingMenu != nil {
-			g.settingMenu.ChangeControlMode(g.control)
+			g.settingMenu.ChangeControlMode(control)
 		}
-	} else if g.control != Gamepad &&
+	} else if control != Gamepad &&
 		(g.gamepadJustPressedButtons.findIndex(buttonSetting.Up) >= 0 ||
 			g.gamepadJustPressedButtons.findIndex(buttonSetting.Down) >= 0 ||
 			g.gamepadJustPressedButtons.findIndex(buttonSetting.Left) >= 0 ||
 			g.gamepadJustPressedButtons.findIndex(buttonSetting.Right) >= 0 ||
 			g.gamepadJustPressedButtons.findIndex(buttonSetting.Action) >= 0) {
-		g.control = Gamepad
-		g.startMenu.ChangeControlMode(g.control)
+		control = Gamepad
+		g.startMenu.ChangeControlMode(control)
 		if g.settingMenu != nil {
-			g.settingMenu.ChangeControlMode(g.control)
+			g.settingMenu.ChangeControlMode(control)
 		}
+	}
+
+	if g.settingMenu != nil {
+		var gamepadId *ebiten.GamepadID = nil
+		if len(g.gamepadIds) > 0 {
+			gamepadId = &g.gamepadIds[0]
+		}
+		g.settingMenu.Update(g.now, gamepadId)
 	}
 
 	{ // debug
@@ -181,31 +178,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		g.settingMenu.Draw(screen, g.now)
 	}
 
-	const msec = 200
-	if (g.now - g.effectAt) < msec {
-		var path = &vector.Path{}
-		const maxR = 30
-		var rate = float32(g.now-g.effectAt) / msec
-		var r = rate * maxR
-		path.MoveTo(0, 0)
-		path.Arc(0, 0, r, 0, math.Pi*2+1, vector.Clockwise)
-		path.Close()
-		var vs, is = path.AppendVerticesAndIndicesForStroke(nil, nil, &vector.StrokeOptions{Width: 4 * (1 - rate)})
-		for i := range vs {
-			vs[i].DstX += float32(g.effectPos.X)
-			vs[i].DstY += float32(g.effectPos.Y)
-			vs[i].ColorR = 1
-			vs[i].ColorG = 1
-			vs[i].ColorB = 1
-			vs[i].ColorA = 1 - rate
-		}
-		screen.DrawTriangles(vs, is, emptySubImage, &ebiten.DrawTrianglesOptions{
-			FillRule: ebiten.EvenOdd,
-		})
-	}
+	drawClickEffect(screen, g)
 
 	var mouseX, mouseY = ebiten.CursorPosition()
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f\nX:%d, Y:%d\n"+debugMessage+"\n"+"%d:%d:"+buttonInput, ebiten.ActualTPS(), ebiten.ActualFPS(), mouseX, mouseY, g.control, g.startMenu.selectedIndex))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f\nX:%d, Y:%d\n"+debugMessage+"\n"+"%d:%d:"+buttonInput, ebiten.ActualTPS(), ebiten.ActualFPS(), mouseX, mouseY, control, g.startMenu.selectedIndex))
+}
+
+func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	return 640, 480
 }
 
 func main() {

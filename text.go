@@ -120,3 +120,8 @@ func (t Text) Draw(screen *ebiten.Image, x, y int) {
 	op.ColorScale.ScaleWithColor(colorCodeToColor(t.style.Color))
 	text.DrawWithOptions(screen, t.str, text.FaceWithLineHeight(font.face, float64(t.style.LineHeight)), op)
 }
+
+func (t Text) ChangeText(text string) {
+	t.str = text
+	t.size = nil
+}

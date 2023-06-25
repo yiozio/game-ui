@@ -1,19 +1,19 @@
 package main
 
 import (
-	"fmt"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"strconv"
 	"yioz.io/game-ui"
 )
 
 type settingMenu struct {
 	game_ui.Component
-	selectedIndex int
-	onExit        func()
-	actionEffect  func(x, y int)
-	isDisabled    func() bool
+	selectedIndex   int
+	waitButtonIndex int
+	onExit          func()
+	actionEffect    func(x, y int)
+	isDisabled      func() bool
 }
 
 const (
@@ -27,7 +27,10 @@ func NewSettingMenu(onExit func(), actionEffect func(x, y int), isDisabled func(
 		selectedIndex = 0
 	}
 	return &settingMenu{game_ui.NewWindow([]game_ui.Component{game_ui.NewView([]game_ui.Component{
-		closeSettingMenuView,
+		settingMenuItems[0],
+		settingMenuItems[1],
+		settingMenuItems[2],
+		settingMenuItems[3],
 	}, game_ui.ViewStyle{
 		Width:            strconv.Itoa(settingMenuWidth),
 		Height:           strconv.Itoa(settingMenuHeight),
@@ -36,7 +39,7 @@ func NewSettingMenu(onExit func(), actionEffect func(x, y int), isDisabled func(
 		BorderColor:      "#ffffff88",
 		Radius:           "11",
 		PositionVertical: game_ui.Center,
-	})}), selectedIndex, onExit, actionEffect, isDisabled}
+	})}), selectedIndex, -1, onExit, actionEffect, isDisabled}
 }
 
 //// controls
@@ -53,7 +56,7 @@ func (m *settingMenu) ChangeControlMode(mode ControlMode) {
 }
 
 func (m *settingMenu) OnMouseMove(mouseX, mouseY int, justClick bool) {
-	if m.isDisabled() {
+	if m.isDisabled() || m.waitButtonIndex >= 0 {
 		return
 	}
 	var hovered = false
@@ -75,7 +78,7 @@ func (m *settingMenu) OnMouseMove(mouseX, mouseY int, justClick bool) {
 }
 
 func (m *settingMenu) OnTouch(touchX, touchY int) {
-	if m.isDisabled() {
+	if m.isDisabled() || m.waitButtonIndex >= 0 {
 		return
 	}
 	var action = false
@@ -95,7 +98,7 @@ func (m *settingMenu) OnTouch(touchX, touchY int) {
 }
 
 func (m *settingMenu) OnGamepadUp() {
-	if m.isDisabled() {
+	if m.isDisabled() || m.waitButtonIndex >= 0 {
 		return
 	}
 	m.selectedIndex -= 1
@@ -105,7 +108,7 @@ func (m *settingMenu) OnGamepadUp() {
 }
 
 func (m *settingMenu) OnGamepadDown() {
-	if m.isDisabled() {
+	if m.isDisabled() || m.waitButtonIndex >= 0 {
 		return
 	}
 	m.selectedIndex += 1
@@ -115,7 +118,7 @@ func (m *settingMenu) OnGamepadDown() {
 }
 
 func (m *settingMenu) OnGamepadAction() {
-	if m.isDisabled() {
+	if m.isDisabled() || m.waitButtonIndex >= 0 {
 		return
 	}
 	m.onAction(-0xffff, -0xffff)
@@ -124,9 +127,37 @@ func (m *settingMenu) OnGamepadAction() {
 func (m *settingMenu) onAction(x, y int) {
 	switch m.selectedIndex {
 	case 0:
+		m.waitButtonIndex = 0
+	case 1:
+		m.waitButtonIndex = 1
+	case 2:
+		m.waitButtonIndex = 2
+	case 3:
 		m.onExit()
 	}
 	m.actionEffect(x, y)
+}
+
+func (m *settingMenu) Update(now int64, gamepadId *ebiten.GamepadID) {
+	gamepadUpSettingMenuText[1].ChangeText(strconv.Itoa(int(buttonSetting.Up)))
+	gamepadDownSettingMenuText[1].ChangeText(strconv.Itoa(int(buttonSetting.Down)))
+	gamepadActionSettingMenuText[1].ChangeText(strconv.Itoa(int(buttonSetting.Action)))
+
+	if gamepadId != nil && m.waitButtonIndex >= 0 && !actioned {
+		var buttons = inpututil.AppendJustPressedGamepadButtons(*gamepadId, nil)
+		debugMessage = "Waiting"
+		if len(buttons) > 0 {
+			switch m.waitButtonIndex {
+			case 0:
+				buttonSetting.Up = buttons[0]
+			case 1:
+				buttonSetting.Down = buttons[0]
+			case 2:
+				buttonSetting.Action = buttons[0]
+			}
+			m.waitButtonIndex = -1
+		}
+	}
 }
 
 //// draw
@@ -134,19 +165,20 @@ func (m *settingMenu) onAction(x, y int) {
 func (m *settingMenu) Draw(screen *ebiten.Image, now int64) {
 	// draw window
 	for i := range settingMenuItems {
-		if i == m.selectedIndex && !m.isDisabled() {
+		if i == m.waitButtonIndex {
+			settingMenuItems[i].ReplaceStyle(0, game_ui.ViewStyle{
+				BorderColor: "#ffffffff",
+				BorderWidth: "0 0 1 10",
+			})
+		} else if i == m.selectedIndex && !m.isDisabled() {
 			settingMenuItems[i].ReplaceStyle(0, game_ui.ViewStyle{
 				BorderColor: "#ffffffff",
 			})
-			ebitenutil.DebugPrintAt(screen, "on", 300, i*15)
 		} else {
 			settingMenuItems[i].PopStyle()
-			ebitenutil.DebugPrintAt(screen, "off", 300, i*15)
 		}
 	}
 	m.Component.Draw(screen, (640-settingMenuWidth-2)/2, (480-settingMenuHeight-2)/2)
-	var min, max = closeSettingMenuView.GetActionArea()
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("%d,%d:%d,%d", min.X, min.Y, max.X, max.Y), 0, 100)
 }
 
 var settingMenuItemStyle = game_ui.ViewStyle{
@@ -155,11 +187,22 @@ var settingMenuItemStyle = game_ui.ViewStyle{
 	Padding:     "2 5 0 5",
 	BorderWidth: "0 0 1 0",
 	BorderColor: "#00000000",
+	Direction:   game_ui.Horizontal,
 }
 
+var gamepadUpSettingMenuText = [2]game_ui.Text{game_ui.NewText("GAMEPAD-UP: "), game_ui.NewText("")}
+var gamepadDownSettingMenuText = [2]game_ui.Text{game_ui.NewText("GAMEPAD-DOWN: "), game_ui.NewText("")}
+var gamepadActionSettingMenuText = [2]game_ui.Text{game_ui.NewText("GAMEPAD-ACTION: "), game_ui.NewText("")}
 var closeSettingMenuText = game_ui.NewText("CLOSE")
-var closeSettingMenuView = game_ui.NewView([]game_ui.Component{closeSettingMenuText}, settingMenuItemStyle)
 
-var settingMenuItems = []game_ui.View{
-	closeSettingMenuView,
+var settingMenuItems []game_ui.View
+
+func init() {
+	for _, text := range [][2]game_ui.Text{gamepadUpSettingMenuText, gamepadDownSettingMenuText, gamepadActionSettingMenuText} {
+		settingMenuItems = append(settingMenuItems, game_ui.NewView([]game_ui.Component{
+			game_ui.NewView([]game_ui.Component{text[0]}, game_ui.ViewStyle{Width: "140"}),
+			game_ui.NewView([]game_ui.Component{text[1]}, game_ui.ViewStyle{Width: "30", PositionHorizontal: game_ui.Last}),
+		}, settingMenuItemStyle))
+	}
+	settingMenuItems = append(settingMenuItems, game_ui.NewView([]game_ui.Component{closeSettingMenuText}, settingMenuItemStyle))
 }

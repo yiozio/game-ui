@@ -406,6 +406,10 @@ func (v View) Draw(screen *ebiten.Image, x, y int) {
 			__y = 0
 		}
 		component.Draw(screen, x+_x+__x, y+_y+__y)
-		_y += componentSize.Y
+		if style.Direction == Horizontal {
+			_x += componentSize.X
+		} else {
+			_y += componentSize.Y
+		}
 	}
 }
