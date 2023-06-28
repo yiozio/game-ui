@@ -11,14 +11,11 @@ import (
 type startMenu struct {
 	game_ui.Component
 	selectedIndex int
-	onStart       func()
-	onSetting     func()
-	onExit        func()
+	settingMenu   *settingMenu
 	actionEffect  func(x, y int)
-	isDisabled    func() bool
 }
 
-func NewStartMenu(onStart, onSetting, onExit func(), actionEffect func(x, y int), isDisabled func() bool) *startMenu {
+func NewStartMenu(actionEffect func(x, y int)) *startMenu {
 	return &startMenu{game_ui.NewWindow([]game_ui.Component{game_ui.NewView([]game_ui.Component{
 		titleView,
 		startView,
@@ -28,7 +25,26 @@ func NewStartMenu(onStart, onSetting, onExit func(), actionEffect func(x, y int)
 		Width:            "640",
 		Height:           "480",
 		PositionVertical: game_ui.Center,
-	})}), 0, onStart, onSetting, onExit, actionEffect, isDisabled}
+	})}), 0, nil, actionEffect}
+}
+
+func (m *startMenu) start() {
+	debugMessage = "START"
+}
+
+func (m *startMenu) setting() {
+	m.selectedIndex = 1
+	m.settingMenu = NewSettingMenu(
+		func() { m.selectedIndex = -1; m.settingMenu = nil },
+		m.actionEffect,
+		func() bool { return m.selectedIndex != 1 },
+		control,
+	)
+	debugMessage = "SETTING"
+}
+
+func (m *startMenu) exit() {
+	debugMessage = "EXIT"
 }
 
 //// controls
@@ -42,10 +58,14 @@ func (m *startMenu) ChangeControlMode(mode ControlMode) {
 	case Touch:
 		m.selectedIndex = -1
 	}
+	if m.settingMenu != nil {
+		m.settingMenu.ChangeControlMode(mode)
+	}
 }
 
 func (m *startMenu) OnMouseMove(mouseX, mouseY int, justClick bool) {
-	if m.isDisabled() {
+	if m.settingMenu != nil {
+		m.settingMenu.OnMouseMove(mouseX, mouseY, justClick)
 		return
 	}
 	var hovered = false
@@ -67,7 +87,8 @@ func (m *startMenu) OnMouseMove(mouseX, mouseY int, justClick bool) {
 }
 
 func (m *startMenu) OnTouch(touchX, touchY int) {
-	if m.isDisabled() {
+	if m.settingMenu != nil {
+		m.settingMenu.OnTouch(touchX, touchY)
 		return
 	}
 	var action = false
@@ -87,7 +108,8 @@ func (m *startMenu) OnTouch(touchX, touchY int) {
 }
 
 func (m *startMenu) OnGamepadUp() {
-	if m.isDisabled() {
+	if m.settingMenu != nil {
+		m.settingMenu.OnGamepadUp()
 		return
 	}
 	m.selectedIndex -= 1
@@ -97,7 +119,8 @@ func (m *startMenu) OnGamepadUp() {
 }
 
 func (m *startMenu) OnGamepadDown() {
-	if m.isDisabled() {
+	if m.settingMenu != nil {
+		m.settingMenu.OnGamepadDown()
 		return
 	}
 	m.selectedIndex += 1
@@ -107,7 +130,8 @@ func (m *startMenu) OnGamepadDown() {
 }
 
 func (m *startMenu) OnGamepadAction() {
-	if m.isDisabled() {
+	if m.settingMenu != nil {
+		m.settingMenu.OnGamepadAction()
 		return
 	}
 	m.onAction(-0xffff, -0xffff)
@@ -116,18 +140,24 @@ func (m *startMenu) OnGamepadAction() {
 func (m *startMenu) onAction(x, y int) {
 	switch m.selectedIndex {
 	case 0:
-		m.onStart()
+		m.start()
 	case 1:
-		m.onSetting()
+		m.setting()
 	case 2:
-		m.onExit()
+		m.exit()
 	}
 	m.actionEffect(x, y)
 }
 
+func (m *startMenu) Update(now int64) {
+	if m.settingMenu != nil {
+		m.settingMenu.Update(now)
+	}
+}
+
 //// draw
 
-func (m *startMenu) Draw(screen *ebiten.Image, now int64) {
+func (m *startMenu) Draw(screen *ebiten.Image, now int64, screenSizeX, screenSizeY int) {
 	// draw background
 	{
 		var path = &vector.Path{}
@@ -161,7 +191,7 @@ func (m *startMenu) Draw(screen *ebiten.Image, now int64) {
 
 	// draw window
 	for i := range startMenuItems {
-		if i == m.selectedIndex && !m.isDisabled() {
+		if i == m.selectedIndex && m.settingMenu == nil {
 			startMenuItems[i].ReplaceStyle(0, game_ui.ViewStyle{
 				BorderColor:     bColor1 + " " + bColor2 + " " + bColor2 + " " + bColor1,
 				BackgroundColor: bgColor1 + " " + bgColor2 + " " + bgColor2 + " " + bgColor1,
@@ -181,6 +211,10 @@ func (m *startMenu) Draw(screen *ebiten.Image, now int64) {
 				strconv.Itoa(actionAreaMinPoint.Y)+":"+
 				strconv.Itoa(actionAreaMaxPoint.X)+","+
 				strconv.Itoa(actionAreaMaxPoint.Y), 100, i*15)
+	}
+
+	if m.settingMenu != nil {
+		m.settingMenu.Draw(screen, now, screenSizeX, screenSizeY)
 	}
 }
 

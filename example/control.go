@@ -44,6 +44,9 @@ const (
 	Touch   ControlMode = 2
 )
 
+var gamepadIds []ebiten.GamepadID
+var gamepadId *ebiten.GamepadID = nil
+
 var actioned = false
 
 type buttons []ebiten.GamepadButton

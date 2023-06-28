@@ -26,13 +26,11 @@ func init() {
 type Game struct {
 	now                       int64
 	justPressedTouchIds       []ebiten.TouchID
-	gamepadIds                []ebiten.GamepadID
 	gamepadJustPressedButtons buttons
 	startMenu                 *startMenu
-	settingMenu               *settingMenu
-	selectedStartMenuIndex    int
 	effectPos                 image.Point
 	effectAt                  int64
+	screenSize                image.Point
 }
 
 func NewGame() ebiten.Game {
@@ -42,32 +40,12 @@ func NewGame() ebiten.Game {
 }
 
 func (g *Game) init() {
-	g.selectedStartMenuIndex = -1
 	g.now = time.Now().UnixMilli()
-	g.startMenu = NewStartMenu(
-		func() {
-			debugMessage = "START"
-		},
-		func() {
-			g.selectedStartMenuIndex = 1
-			g.settingMenu = NewSettingMenu(
-				func() { g.selectedStartMenuIndex = -1; g.settingMenu = nil },
-				g.menuEffect,
-				func() bool { return g.selectedStartMenuIndex != 1 },
-				control,
-			)
-			debugMessage = "SETTING"
-		},
-		func() {
-			debugMessage = "EXIT"
-		},
-		g.menuEffect,
-		func() bool {
-			return g.selectedStartMenuIndex >= 0
-		})
+	g.screenSize = image.Point{X: 640, Y: 480}
+	g.startMenu = NewStartMenu(g.actionEffect)
 }
 
-func (g *Game) menuEffect(x, y int) {
+func (g *Game) actionEffect(x, y int) {
 	g.effectPos = image.Point{X: x, Y: y}
 	g.effectAt = g.now
 }
@@ -79,9 +57,12 @@ func (g *Game) Update() error {
 	// get input
 	var isMouseClicked = inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft)
 	g.gamepadJustPressedButtons = []ebiten.GamepadButton{}
-	g.gamepadIds = inpututil.AppendJustConnectedGamepadIDs(g.gamepadIds)
-	if len(g.gamepadIds) > 0 {
-		g.gamepadJustPressedButtons = inpututil.AppendJustPressedGamepadButtons(g.gamepadIds[0], nil)
+	gamepadIds = inpututil.AppendJustConnectedGamepadIDs(gamepadIds)
+	if len(gamepadIds) > 0 {
+		gamepadId = &gamepadIds[0]
+	}
+	if gamepadId != nil {
+		g.gamepadJustPressedButtons = inpututil.AppendJustPressedGamepadButtons(*gamepadId, nil)
 	}
 	g.justPressedTouchIds = inpututil.AppendJustPressedTouchIDs(nil)
 
@@ -90,75 +71,46 @@ func (g *Game) Update() error {
 		var mouseX, mouseY = ebiten.CursorPosition()
 		if mouseX != 0 || mouseY != 0 {
 			g.startMenu.OnMouseMove(mouseX, mouseY, isMouseClicked)
-			if g.settingMenu != nil {
-				g.settingMenu.OnMouseMove(mouseX, mouseY, isMouseClicked)
-			}
 		}
 	}
 	if control == Touch {
 		if len(g.justPressedTouchIds) > 0 {
 			var touchX, touchY = ebiten.TouchPosition(g.justPressedTouchIds[0])
 			g.startMenu.OnTouch(touchX, touchY)
-			if g.settingMenu != nil {
-				g.settingMenu.OnTouch(touchX, touchY)
-			}
 		}
 	}
 	if control == Gamepad {
 		if g.gamepadJustPressedButtons.findIndex(buttonSetting.Up) >= 0 {
 			g.startMenu.OnGamepadUp()
-			if g.settingMenu != nil {
-				g.settingMenu.OnGamepadUp()
-			}
 		} else if g.gamepadJustPressedButtons.findIndex(buttonSetting.Down) >= 0 {
 			g.startMenu.OnGamepadDown()
-			if g.settingMenu != nil {
-				g.settingMenu.OnGamepadDown()
-			}
 		}
 		if g.gamepadJustPressedButtons.findIndex(buttonSetting.Action) >= 0 {
 			actioned = true
-			if g.settingMenu == nil {
-				g.startMenu.OnGamepadAction()
-			} else if g.settingMenu != nil {
-				g.settingMenu.OnGamepadAction()
-			}
+			g.startMenu.OnGamepadAction()
 		}
 	}
 
 	// switch control mode
+	var _control = control
 	if control != Mouse && isMouseClicked {
-		control = Mouse
-		g.startMenu.ChangeControlMode(control)
-		if g.settingMenu != nil {
-			g.settingMenu.ChangeControlMode(control)
-		}
+		_control = Mouse
 	} else if control != Touch && len(g.justPressedTouchIds) > 0 {
-		control = Touch
-		g.startMenu.ChangeControlMode(control)
-		if g.settingMenu != nil {
-			g.settingMenu.ChangeControlMode(control)
-		}
+		_control = Touch
 	} else if control != Gamepad &&
 		(g.gamepadJustPressedButtons.findIndex(buttonSetting.Up) >= 0 ||
 			g.gamepadJustPressedButtons.findIndex(buttonSetting.Down) >= 0 ||
 			g.gamepadJustPressedButtons.findIndex(buttonSetting.Left) >= 0 ||
 			g.gamepadJustPressedButtons.findIndex(buttonSetting.Right) >= 0 ||
 			g.gamepadJustPressedButtons.findIndex(buttonSetting.Action) >= 0) {
-		control = Gamepad
+		_control = Gamepad
+	}
+	if _control != control {
+		control = _control
 		g.startMenu.ChangeControlMode(control)
-		if g.settingMenu != nil {
-			g.settingMenu.ChangeControlMode(control)
-		}
 	}
 
-	if g.settingMenu != nil {
-		var gamepadId *ebiten.GamepadID = nil
-		if len(g.gamepadIds) > 0 {
-			gamepadId = &g.gamepadIds[0]
-		}
-		g.settingMenu.Update(g.now, gamepadId)
-	}
+	g.startMenu.Update(g.now)
 
 	{ // debug
 		if len(g.gamepadJustPressedButtons) > 0 {
@@ -173,19 +125,14 @@ var debugMessage = ""
 var buttonInput = ""
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	g.startMenu.Draw(screen, g.now)
-	if g.selectedStartMenuIndex == 1 && g.settingMenu != nil {
-		g.settingMenu.Draw(screen, g.now)
-	}
-
+	g.startMenu.Draw(screen, g.now, g.screenSize.X, g.screenSize.Y)
 	drawClickEffect(screen, g)
-
 	var mouseX, mouseY = ebiten.CursorPosition()
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f\nFPS: %0.2f\nX:%d, Y:%d\n"+debugMessage+"\n"+"%d:%d:"+buttonInput, ebiten.ActualTPS(), ebiten.ActualFPS(), mouseX, mouseY, control, g.startMenu.selectedIndex))
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
-	return 640, 480
+	return g.screenSize.X, g.screenSize.Y
 }
 
 func main() {
