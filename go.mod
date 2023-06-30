@@ -1,4 +1,4 @@
-module yioz.io/game-ui
+module github.com/yiozio/game-ui
 
 go 1.20
 
