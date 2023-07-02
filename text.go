@@ -131,3 +131,7 @@ func (t Text) ChangeText(text string) {
 	t.str = text
 	t.size = nil
 }
+
+func (t Text) IsFloating() bool {
+	return false
+}

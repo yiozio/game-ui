@@ -28,6 +28,7 @@ type ViewStyle struct {
 	Direction          *DirectionType
 	PositionHorizontal *PositionType
 	PositionVertical   *PositionType
+	IsFloating         bool
 }
 
 type DirectionType = string
@@ -80,6 +81,7 @@ func mergeViewStyle(target ViewStyle, styles []ViewStyle) ViewStyle {
 		if styles[i].PositionVertical != nil {
 			target.PositionVertical = styles[i].PositionVertical
 		}
+		target.IsFloating = target.IsFloating || styles[i].IsFloating
 	}
 	return target
 }
@@ -123,6 +125,9 @@ func (v View) getContentSize() image.Point {
 	var x, y = 0, 0
 	var style = mergeViewStyle(v.style, v.extraStyles)
 	for _, component := range v.components {
+		if component.IsFloating() {
+			continue
+		}
 		var contentSize = component.GetSize()
 		if style.Direction == nil || *style.Direction == Vertical {
 			if x <= contentSize.X {
@@ -377,10 +382,18 @@ func (v View) Draw(screen *ebiten.Image, x, y int) {
 			__x = 0
 		}
 		component.Draw(screen, x+_x+__x, y+_y+__y)
+		if component.IsFloating() {
+			continue
+		}
 		if style.Direction == nil || *style.Direction == Vertical {
 			_y += componentSize.Y
 		} else {
 			_x += componentSize.X
 		}
 	}
+}
+
+func (v View) IsFloating() bool {
+	var style = mergeViewStyle(v.style, v.extraStyles)
+	return style.IsFloating
 }

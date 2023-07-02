@@ -33,3 +33,7 @@ func (w Window) Draw(screen *ebiten.Image, x, y int) {
 		_y += component.GetSize().Y
 	}
 }
+
+func (w Window) IsFloating() bool {
+	return false
+}
