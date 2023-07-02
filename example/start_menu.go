@@ -4,8 +4,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
-	"strconv"
 	"github.com/yiozio/game-ui"
+	"strconv"
 )
 
 type startMenu struct {
@@ -16,15 +16,16 @@ type startMenu struct {
 }
 
 func NewStartMenu(actionEffect func(x, y int)) *startMenu {
+	var pos = game_ui.Center
 	return &startMenu{game_ui.NewWindow([]game_ui.Component{game_ui.NewView([]game_ui.Component{
 		titleView,
 		startView,
 		settingView,
 		exitView,
 	}, game_ui.ViewStyle{
-		Width:            "640",
-		Height:           "480",
-		PositionVertical: game_ui.Center,
+		Width:            game_ui.Vw(1),
+		Height:           game_ui.Vh(1),
+		PositionVertical: &pos,
 	})}), 0, nil, actionEffect}
 }
 
@@ -179,22 +180,22 @@ func (m *startMenu) Draw(screen *ebiten.Image, now int64, screenSizeX, screenSiz
 		})
 	}
 
-	var n = 0xe * ((now / 2) % 16)
+	var n = 0xe * uint32((now/2)%16)
 	if n > (0xe * 8) {
 		n = 0xd*16 - n
 	}
 	n -= 1
-	var bColor1 = "#ffffff" + strconv.FormatInt(0x190+n, 16)[1:]
-	var bColor2 = "#ffffff00"
-	var bgColor1 = "#5599cc" + strconv.FormatInt(0x150+n, 16)[1:]
-	var bgColor2 = "#5599cc00"
+	var bColor1 uint32 = 0xffffff90 + n
+	var bColor2 uint32 = 0xffffff00
+	var bgColor1 uint32 = 0x5599cc50 + n
+	var bgColor2 uint32 = 0x5599cc00
 
 	// draw window
 	for i := range startMenuItems {
 		if i == m.selectedIndex && m.settingMenu == nil {
 			startMenuItems[i].ReplaceStyle(0, game_ui.ViewStyle{
-				BorderColor:     bColor1 + " " + bColor2 + " " + bColor2 + " " + bColor1,
-				BackgroundColor: bgColor1 + " " + bgColor2 + " " + bgColor2 + " " + bgColor1,
+				BorderColor:     game_ui.ColorCodeHorizontal(bColor1, bColor2),
+				BackgroundColor: game_ui.ColorCodeHorizontal(bgColor1, bgColor2),
 			})
 			ebitenutil.DebugPrintAt(screen, "on", 300, i*15)
 		} else {
@@ -229,16 +230,16 @@ var titleFont = game_ui.NewTextFont(
 var titleText = game_ui.NewText("SAMPLE", game_ui.TextStyle{
 	Font: &titleFont,
 })
-var titleView = game_ui.NewView([]game_ui.Component{titleText}, game_ui.ViewStyle{Margin: "10 50 20"})
+var titleView = game_ui.NewView([]game_ui.Component{titleText}, game_ui.ViewStyle{Margin: game_ui.Size3(game_ui.Px(10), game_ui.Px(50), game_ui.Px(20))})
 
 var startMenuItemStyle = game_ui.ViewStyle{
-	Margin:          "5 45",
-	Width:           "200",
-	Padding:         "2 40 1 10",
-	BorderWidth:     "1 0 1 1",
-	BorderColor:     "#00000000",
-	BackgroundColor: "#00000000",
-	Radius:          "20 0 0 20",
+	Margin:          game_ui.Size2(game_ui.Px(5), game_ui.Px(45)),
+	Width:           game_ui.Px(200),
+	Padding:         game_ui.Size4(game_ui.Px(2), game_ui.Px(40), game_ui.Px(1), game_ui.Px(10)),
+	BorderWidth:     game_ui.Size4(game_ui.Px(1), game_ui.Px(0), game_ui.Px(1), game_ui.Px(1)),
+	BorderColor:     game_ui.ColorCode1(0x00000000),
+	BackgroundColor: game_ui.ColorCode1(0x00000000),
+	Radius:          game_ui.Radius4(20, 0, 0, 20),
 }
 
 var startText = game_ui.NewText("START")

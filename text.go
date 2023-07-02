@@ -6,21 +6,22 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/text"
 	"golang.org/x/image/font"
 	"image"
+	"image/color"
 	"strings"
 )
 
 type textComponent struct {
-	str   string
-	size  *image.Point
-	style TextStyle
+	str        string
+	size       *image.Point
+	style      TextStyle
+	screenSize image.Point
 }
 type Text = *textComponent
 type TextStyle struct {
-	/* #FFF | #FFFFFF | #FFFFFFFF */
-	Color      string
-	LineHeight int
+	Color      *color.Color
+	LineHeight *sizeSeg
 	Font       *TextFont
-	Width      int
+	Width      *sizeSeg
 }
 type TextFont struct {
 	face        font.Face
@@ -44,16 +45,16 @@ func NewTextFont(face font.Face, xAdjustment int, yAdjustment int) TextFont {
 
 func mergeTextStyle(target TextStyle, styles []TextStyle) TextStyle {
 	for i := range styles {
-		if len(styles[i].Color) > 0 {
+		if styles[i].Color != nil {
 			target.Color = styles[i].Color
 		}
-		if styles[i].LineHeight > 0 {
+		if styles[i].LineHeight != nil {
 			target.LineHeight = styles[i].LineHeight
 		}
 		if styles[i].Font != nil {
 			target.Font = styles[i].Font
 		}
-		if styles[i].Width > 0 {
+		if styles[i].Width != nil {
 			target.Width = styles[i].Width
 		}
 	}
@@ -61,10 +62,11 @@ func mergeTextStyle(target TextStyle, styles []TextStyle) TextStyle {
 }
 
 func getDefaultTextStyle() TextStyle {
+	var c color.Color = color.White
 	return TextStyle{
-		Color:      "#ffffffff",
-		LineHeight: 12,
+		Color:      &c,
 		Font:       &defaultTextFont,
+		LineHeight: Px(12),
 	}
 }
 
@@ -77,12 +79,12 @@ func (t Text) GetSize() image.Point {
 	if t.size != nil {
 		return *t.size
 	}
-	if t.style.Width > 0 {
+	if t.style.Width != nil {
 		var str = ""
 		var line = ""
 		for _, _char := range t.str {
 			var char = string(_char)
-			if text.BoundString(t.style.Font.face, line+char).Size().X > t.style.Width {
+			if text.BoundString(t.style.Font.face, line+char).Size().X > calcSize(t.screenSize, *t.style.Width) {
 				if len(line) == 0 {
 					str += line + char + "\n"
 					line = ""
@@ -101,24 +103,28 @@ func (t Text) GetSize() image.Point {
 		t.str = str
 	}
 
-	var size = text.BoundString(text.FaceWithLineHeight(t.style.Font.face, float64(t.style.LineHeight)), t.str).Size()
+	var lineHeightPx = calcSize(t.screenSize, *t.style.LineHeight)
+	var size = text.BoundString(text.FaceWithLineHeight(t.style.Font.face, float64(lineHeightPx)), t.str).Size()
 	var lineCount = strings.Count(t.str, "\n") + 1
 	t.size = &image.Point{
 		X: size.X - 1,
-		Y: lineCount * t.style.LineHeight,
+		Y: lineCount * lineHeightPx,
 	}
 	return *t.size
 }
 
 func (t Text) Draw(screen *ebiten.Image, x, y int) {
+	t.screenSize = screen.Bounds().Size()
 	t.GetSize()
 	var font = t.style.Font
+	var lineHeight = t.style.LineHeight
+	var lineHeightPx = calcSize(t.screenSize, *lineHeight)
 	x += font.xAdjustment
-	y += t.style.LineHeight - t.style.LineHeight/2 + font.yAdjustment
+	y += lineHeightPx - lineHeightPx/2 + font.yAdjustment
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(x), float64(y))
-	op.ColorScale.ScaleWithColor(colorCodeToColor(t.style.Color))
-	text.DrawWithOptions(screen, t.str, text.FaceWithLineHeight(font.face, float64(t.style.LineHeight)), op)
+	op.ColorScale.ScaleWithColor(*t.style.Color)
+	text.DrawWithOptions(screen, t.str, text.FaceWithLineHeight(font.face, float64(lineHeightPx)), op)
 }
 
 func (t Text) ChangeText(text string) {
