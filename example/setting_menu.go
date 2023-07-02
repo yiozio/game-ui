@@ -4,7 +4,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"strconv"
-	"yioz.io/game-ui"
+	"github.com/yiozio/game-ui"
 )
 
 type settingMenu struct {

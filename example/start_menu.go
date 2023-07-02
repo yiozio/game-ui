@@ -5,7 +5,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 	"strconv"
-	"yioz.io/game-ui"
+	"github.com/yiozio/game-ui"
 )
 
 type startMenu struct {
