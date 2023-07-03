@@ -18,6 +18,8 @@ type Component interface {
 	GetSize() image.Point
 	Draw(screen *ebiten.Image, x, y int)
 	IsFloating() bool
+	Components() []Component
+	Area() image.Rectangle
 }
 
 func init() {

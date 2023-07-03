@@ -8,13 +8,12 @@ import (
 )
 
 type viewComponent struct {
-	components         []Component
-	size               *image.Point
-	style              ViewStyle
-	extraStyles        []ViewStyle
-	actionAreaMinPoint image.Point
-	actionAreaMaxPoint image.Point
-	screenSize         image.Point
+	components  []Component
+	size        *image.Point
+	style       ViewStyle
+	extraStyles []ViewStyle
+	drawnArea   image.Rectangle
+	screenSize  image.Point
 }
 type View = *viewComponent
 type ViewStyle struct {
@@ -174,10 +173,6 @@ func (v View) GetSize() image.Point {
 	return image.Point{X: x, Y: y}
 }
 
-func (v View) GetActionArea() (image.Point, image.Point) {
-	return v.actionAreaMinPoint, v.actionAreaMaxPoint
-}
-
 func (v View) Draw(screen *ebiten.Image, x, y int) {
 	var style = mergeViewStyle(v.style, v.extraStyles)
 	var marginTop, marginRight, marginBottom, marginLeft int
@@ -249,8 +244,8 @@ func (v View) Draw(screen *ebiten.Image, x, y int) {
 	var contentLeft = int(positionH * float64(size.X-contentSize.X))
 	var contentTop = int(positionV * float64(size.Y-contentSize.Y))
 
-	v.actionAreaMinPoint = image.Point{X: x + marginLeft, Y: y + marginTop}
-	v.actionAreaMaxPoint = image.Point{X: v.actionAreaMinPoint.X + size.X - marginWidth, Y: v.actionAreaMinPoint.Y + size.Y - marginHeight}
+	var minX, minY = x + marginLeft, y + marginTop
+	v.drawnArea = image.Rect(minX, minY, minX+size.X-marginWidth, minY+size.Y-marginHeight)
 
 	// draw border
 	if style.BorderColor != nil {
@@ -396,4 +391,12 @@ func (v View) Draw(screen *ebiten.Image, x, y int) {
 func (v View) IsFloating() bool {
 	var style = mergeViewStyle(v.style, v.extraStyles)
 	return style.IsFloating
+}
+
+func (v View) Components() []Component {
+	return v.components
+}
+
+func (v View) Area() image.Rectangle {
+	return v.drawnArea
 }

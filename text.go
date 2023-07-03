@@ -15,6 +15,7 @@ type textComponent struct {
 	size       *image.Point
 	style      TextStyle
 	screenSize image.Point
+	drawnArea  image.Rectangle
 }
 type Text = *textComponent
 type TextStyle struct {
@@ -115,7 +116,8 @@ func (t Text) GetSize() image.Point {
 
 func (t Text) Draw(screen *ebiten.Image, x, y int) {
 	t.screenSize = screen.Bounds().Size()
-	t.GetSize()
+	var size = t.GetSize()
+	t.drawnArea = image.Rect(x, y, x+size.X, y+size.Y)
 	var font = t.style.Font
 	var lineHeight = t.style.LineHeight
 	var lineHeightPx = calcSize(t.screenSize, *lineHeight)
@@ -134,4 +136,12 @@ func (t Text) ChangeText(text string) {
 
 func (t Text) IsFloating() bool {
 	return false
+}
+
+func (t Text) Components() []Component {
+	return []Component{}
+}
+
+func (t Text) Area() image.Rectangle {
+	return t.drawnArea
 }

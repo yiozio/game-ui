@@ -9,7 +9,7 @@ import (
 )
 
 type startMenu struct {
-	game_ui.Component
+	game_ui.Window
 	selectedIndex int
 	settingMenu   *settingMenu
 	actionEffect  func(x, y int)
@@ -71,9 +71,9 @@ func (m *startMenu) OnMouseMove(mouseX, mouseY int, justClick bool) {
 	}
 	var hovered = false
 	for i, view := range startMenuItems {
-		var actionAreaMinPoint, actionAreaMaxPoint = view.GetActionArea()
-		if actionAreaMinPoint.X <= mouseX && mouseX <= actionAreaMaxPoint.X &&
-			actionAreaMinPoint.Y <= mouseY && mouseY <= actionAreaMaxPoint.Y {
+		var actionArea = view.Area()
+		if actionArea.Min.X <= mouseX && mouseX <= actionArea.Max.X &&
+			actionArea.Min.Y <= mouseY && mouseY <= actionArea.Max.Y {
 			m.selectedIndex = i
 			hovered = true
 			break
@@ -94,9 +94,9 @@ func (m *startMenu) OnTouch(touchX, touchY int) {
 	}
 	var action = false
 	for i, view := range startMenuItems {
-		var actionAreaMinPoint, actionAreaMaxPoint = view.GetActionArea()
-		if actionAreaMinPoint.X <= touchX && touchX <= actionAreaMaxPoint.X &&
-			actionAreaMinPoint.Y <= touchY && touchY <= actionAreaMaxPoint.Y {
+		var actionArea = view.Area()
+		if actionArea.Min.X <= touchX && touchX <= actionArea.Max.X &&
+			actionArea.Min.Y <= touchY && touchY <= actionArea.Max.Y {
 			m.selectedIndex = i
 			action = true
 			break
@@ -204,14 +204,14 @@ func (m *startMenu) Draw(screen *ebiten.Image, now int64, screenSizeX, screenSiz
 		}
 	}
 
-	m.Component.Draw(screen, 0, 0)
+	m.Window.Draw(screen, 0, 0)
 	for i, view := range startMenuItems {
-		var actionAreaMinPoint, actionAreaMaxPoint = view.GetActionArea()
+		var actionArea = view.Area()
 		ebitenutil.DebugPrintAt(screen,
-			strconv.Itoa(actionAreaMinPoint.X)+","+
-				strconv.Itoa(actionAreaMinPoint.Y)+":"+
-				strconv.Itoa(actionAreaMaxPoint.X)+","+
-				strconv.Itoa(actionAreaMaxPoint.Y), 100, i*15)
+			strconv.Itoa(actionArea.Min.X)+","+
+				strconv.Itoa(actionArea.Min.Y)+":"+
+				strconv.Itoa(actionArea.Max.X)+","+
+				strconv.Itoa(actionArea.Max.Y), 100, i*15)
 	}
 
 	if m.settingMenu != nil {

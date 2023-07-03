@@ -37,3 +37,7 @@ func (w Window) Draw(screen *ebiten.Image, x, y int) {
 func (w Window) IsFloating() bool {
 	return false
 }
+
+func (w Window) Components() []Component {
+	return w.components
+}

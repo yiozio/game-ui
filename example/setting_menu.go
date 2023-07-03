@@ -8,7 +8,7 @@ import (
 )
 
 type settingMenu struct {
-	game_ui.Component
+	game_ui.Window
 	selectedIndex   int
 	waitButtonIndex int
 	onExit          func()
@@ -63,9 +63,9 @@ func (m *settingMenu) OnMouseMove(mouseX, mouseY int, justClick bool) {
 	}
 	var hovered = false
 	for i, view := range settingMenuItems {
-		var min, max = view.GetActionArea()
-		if min.X <= mouseX && mouseX <= max.X &&
-			min.Y <= mouseY && mouseY <= max.Y {
+		var area = view.Area()
+		if area.Min.X <= mouseX && mouseX <= area.Max.X &&
+			area.Min.Y <= mouseY && mouseY <= area.Max.Y {
 			m.selectedIndex = i
 			hovered = true
 			break
@@ -85,9 +85,9 @@ func (m *settingMenu) OnTouch(touchX, touchY int) {
 	}
 	var action = false
 	for i, view := range settingMenuItems {
-		var min, max = view.GetActionArea()
-		if min.X <= touchX && touchX <= max.X &&
-			min.Y <= touchY && touchY <= max.Y {
+		var area = view.Area()
+		if area.Min.X <= touchX && touchX <= area.Max.X &&
+			area.Min.Y <= touchY && touchY <= area.Max.Y {
 			m.selectedIndex = i
 			action = true
 			break
@@ -189,8 +189,8 @@ func (m *settingMenu) Draw(screen *ebiten.Image, now int64, screenSizeX, screenS
 			settingMenuItems[i].PopStyle()
 		}
 	}
-	var size = m.Component.GetSize()
-	m.Component.Draw(screen, (screenSizeX-size.X-2)/2, (screenSizeY-size.Y-2)/2)
+	var size = m.Window.GetSize()
+	m.Window.Draw(screen, (screenSizeX-size.X-2)/2, (screenSizeY-size.Y-2)/2)
 }
 
 var settingMenuItemStyle = game_ui.ViewStyle{
