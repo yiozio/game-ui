@@ -47,10 +47,7 @@ const (
 	Touch   ControlMode = 2
 )
 
-var gamepadIds []ebiten.GamepadID
 var gamepadId *ebiten.GamepadID = nil
-
-var actioned = false
 
 type buttons []ebiten.StandardGamepadButton
 
@@ -64,6 +61,10 @@ func (bts buttons) findIndex(button ebiten.StandardGamepadButton) int {
 }
 
 func buttonToString(btn ebiten.StandardGamepadButton) string {
+	if !ebiten.IsStandardGamepadButtonAvailable(*gamepadId, btn) {
+		return "None"
+	}
+
 	switch btn {
 	case ebiten.StandardGamepadButtonRightBottom:
 		return "A"

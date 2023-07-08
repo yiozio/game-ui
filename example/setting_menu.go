@@ -8,11 +8,12 @@ import (
 
 type settingMenu struct {
 	game_ui.Window
-	selectedIndex   int
-	waitButtonIndex int
-	onExit          func()
-	actionEffect    func(x, y int)
-	isDisabled      func() bool
+	selectedIndex       int
+	waitButtonIndex     int
+	prevWaitButtonIndex int
+	onExit              func()
+	actionEffect        func(x, y int)
+	isDisabled          func() bool
 }
 
 func toP[T string](str T) *T {
@@ -40,7 +41,7 @@ func NewSettingMenu(onExit func(), actionEffect func(x, y int), isDisabled func(
 		Radius:           game_ui.Radius1(11),
 		Padding:          game_ui.Size2(game_ui.Px(10), game_ui.Px(20)),
 		PositionVertical: toP(game_ui.Center),
-	})}), selectedIndex, -1, onExit, actionEffect, isDisabled}
+	})}), selectedIndex, -1, -1, onExit, actionEffect, isDisabled}
 }
 
 //// controls
@@ -153,7 +154,7 @@ func (m *settingMenu) Update(now int64) {
 	gamepadDownSettingMenuText[1].ChangeText(buttonToString(buttonSetting.Down))
 	gamepadActionSettingMenuText[1].ChangeText(buttonToString(buttonSetting.Action))
 
-	if gamepadId != nil && m.waitButtonIndex >= 0 && !actioned {
+	if gamepadId != nil && m.prevWaitButtonIndex >= 0 {
 		var buttons = inpututil.AppendJustPressedStandardGamepadButtons(*gamepadId, nil)
 		debugMessage = "Waiting"
 		if len(buttons) > 0 {
@@ -168,6 +169,7 @@ func (m *settingMenu) Update(now int64) {
 			m.waitButtonIndex = -1
 		}
 	}
+	m.prevWaitButtonIndex = m.waitButtonIndex
 }
 
 //// draw

@@ -52,21 +52,22 @@ func (g *Game) actionEffect(x, y int) {
 
 func (g *Game) Update() error {
 	g.now = time.Now().UnixMilli()
-	actioned = false
 
-	// get input
 	var isMouseClicked = inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft)
 	g.gamepadJustPressedButtons = []ebiten.StandardGamepadButton{}
-	gamepadIds = inpututil.AppendJustConnectedGamepadIDs(gamepadIds)
+	var gamepadIds = inpututil.AppendJustConnectedGamepadIDs(nil)
 	if len(gamepadIds) > 0 {
 		gamepadId = &gamepadIds[0]
+	}
+	if gamepadId != nil && inpututil.IsGamepadJustDisconnected(*gamepadId) {
+		gamepadId = nil
+		control = Mouse
 	}
 	if gamepadId != nil {
 		g.gamepadJustPressedButtons = inpututil.AppendJustPressedStandardGamepadButtons(*gamepadId, nil)
 	}
 	g.justPressedTouchIds = inpututil.AppendJustPressedTouchIDs(nil)
 
-	// set input
 	if control == Mouse {
 		var mouseX, mouseY = ebiten.CursorPosition()
 		if mouseX != 0 || mouseY != 0 {
@@ -86,12 +87,10 @@ func (g *Game) Update() error {
 			g.startMenu.OnGamepadDown()
 		}
 		if g.gamepadJustPressedButtons.findIndex(buttonSetting.Action) >= 0 {
-			actioned = true
 			g.startMenu.OnGamepadAction()
 		}
 	}
 
-	// switch control mode
 	var _control = control
 	if control != Mouse && isMouseClicked {
 		_control = Mouse
