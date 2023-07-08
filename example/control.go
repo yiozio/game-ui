@@ -1,6 +1,9 @@
 package main
 
-import "github.com/hajimehoshi/ebiten/v2"
+import (
+	"github.com/hajimehoshi/ebiten/v2"
+	"strconv"
+)
 
 type KeySetting struct {
 	Up     ebiten.Key
@@ -11,11 +14,11 @@ type KeySetting struct {
 }
 
 type ButtonSetting struct {
-	Up     ebiten.GamepadButton
-	Right  ebiten.GamepadButton
-	Down   ebiten.GamepadButton
-	Left   ebiten.GamepadButton
-	Action ebiten.GamepadButton
+	Up     ebiten.StandardGamepadButton
+	Right  ebiten.StandardGamepadButton
+	Down   ebiten.StandardGamepadButton
+	Left   ebiten.StandardGamepadButton
+	Action ebiten.StandardGamepadButton
 }
 
 var (
@@ -27,11 +30,11 @@ var (
 		Action: ebiten.KeySpace,
 	}
 	buttonSetting = ButtonSetting{
-		Up:     ebiten.GamepadButton12,
-		Left:   ebiten.GamepadButton14,
-		Down:   ebiten.GamepadButton13,
-		Right:  ebiten.GamepadButton15,
-		Action: ebiten.GamepadButton0,
+		Up:     ebiten.StandardGamepadButtonLeftTop,
+		Left:   ebiten.StandardGamepadButtonLeftLeft,
+		Down:   ebiten.StandardGamepadButtonLeftBottom,
+		Right:  ebiten.StandardGamepadButtonLeftRight,
+		Action: ebiten.StandardGamepadButtonRightBottom,
 	}
 	control ControlMode = Mouse
 )
@@ -49,13 +52,53 @@ var gamepadId *ebiten.GamepadID = nil
 
 var actioned = false
 
-type buttons []ebiten.GamepadButton
+type buttons []ebiten.StandardGamepadButton
 
-func (bts buttons) findIndex(button ebiten.GamepadButton) int {
+func (bts buttons) findIndex(button ebiten.StandardGamepadButton) int {
 	for i, b := range bts {
 		if b == button {
 			return i
 		}
 	}
 	return -1
+}
+
+func buttonToString(btn ebiten.StandardGamepadButton) string {
+	switch btn {
+	case ebiten.StandardGamepadButtonRightBottom:
+		return "A"
+	case ebiten.StandardGamepadButtonRightRight:
+		return "B"
+	case ebiten.StandardGamepadButtonRightLeft:
+		return "X"
+	case ebiten.StandardGamepadButtonRightTop:
+		return "Y"
+	case ebiten.StandardGamepadButtonFrontTopLeft:
+		return "L1"
+	case ebiten.StandardGamepadButtonFrontTopRight:
+		return "R1"
+	case ebiten.StandardGamepadButtonFrontBottomLeft:
+		return "L2"
+	case ebiten.StandardGamepadButtonFrontBottomRight:
+		return "R2"
+	case ebiten.StandardGamepadButtonCenterLeft:
+		return "Opt1"
+	case ebiten.StandardGamepadButtonCenterRight:
+		return "Opt2"
+	case ebiten.StandardGamepadButtonLeftStick:
+		return "L3"
+	case ebiten.StandardGamepadButtonRightStick:
+		return "R3"
+	case ebiten.StandardGamepadButtonLeftTop:
+		return "↑"
+	case ebiten.StandardGamepadButtonLeftBottom:
+		return "↓"
+	case ebiten.StandardGamepadButtonLeftLeft:
+		return "←"
+	case ebiten.StandardGamepadButtonLeftRight:
+		return "→"
+	case ebiten.StandardGamepadButtonCenterCenter:
+		return "Opt3"
+	}
+	return strconv.Itoa(int(btn))
 }

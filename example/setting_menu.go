@@ -4,7 +4,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/yiozio/game-ui"
-	"strconv"
 )
 
 type settingMenu struct {
@@ -150,12 +149,12 @@ func (m *settingMenu) Update(now int64) {
 	} else {
 		gamepadSettingMenuText[1].ChangeText("None")
 	}
-	gamepadUpSettingMenuText[1].ChangeText(strconv.Itoa(int(buttonSetting.Up)))
-	gamepadDownSettingMenuText[1].ChangeText(strconv.Itoa(int(buttonSetting.Down)))
-	gamepadActionSettingMenuText[1].ChangeText(strconv.Itoa(int(buttonSetting.Action)))
+	gamepadUpSettingMenuText[1].ChangeText(buttonToString(buttonSetting.Up))
+	gamepadDownSettingMenuText[1].ChangeText(buttonToString(buttonSetting.Down))
+	gamepadActionSettingMenuText[1].ChangeText(buttonToString(buttonSetting.Action))
 
 	if gamepadId != nil && m.waitButtonIndex >= 0 && !actioned {
-		var buttons = inpututil.AppendJustPressedGamepadButtons(*gamepadId, nil)
+		var buttons = inpututil.AppendJustPressedStandardGamepadButtons(*gamepadId, nil)
 		debugMessage = "Waiting"
 		if len(buttons) > 0 {
 			switch m.waitButtonIndex {

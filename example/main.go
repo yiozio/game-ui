@@ -56,13 +56,13 @@ func (g *Game) Update() error {
 
 	// get input
 	var isMouseClicked = inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft)
-	g.gamepadJustPressedButtons = []ebiten.GamepadButton{}
+	g.gamepadJustPressedButtons = []ebiten.StandardGamepadButton{}
 	gamepadIds = inpututil.AppendJustConnectedGamepadIDs(gamepadIds)
 	if len(gamepadIds) > 0 {
 		gamepadId = &gamepadIds[0]
 	}
 	if gamepadId != nil {
-		g.gamepadJustPressedButtons = inpututil.AppendJustPressedGamepadButtons(*gamepadId, nil)
+		g.gamepadJustPressedButtons = inpututil.AppendJustPressedStandardGamepadButtons(*gamepadId, nil)
 	}
 	g.justPressedTouchIds = inpututil.AppendJustPressedTouchIDs(nil)
 
@@ -98,11 +98,7 @@ func (g *Game) Update() error {
 	} else if control != Touch && len(g.justPressedTouchIds) > 0 {
 		_control = Touch
 	} else if control != Gamepad &&
-		(g.gamepadJustPressedButtons.findIndex(buttonSetting.Up) >= 0 ||
-			g.gamepadJustPressedButtons.findIndex(buttonSetting.Down) >= 0 ||
-			g.gamepadJustPressedButtons.findIndex(buttonSetting.Left) >= 0 ||
-			g.gamepadJustPressedButtons.findIndex(buttonSetting.Right) >= 0 ||
-			g.gamepadJustPressedButtons.findIndex(buttonSetting.Action) >= 0) {
+		(len(g.gamepadJustPressedButtons) > 0) {
 		_control = Gamepad
 	}
 	if _control != control {
