@@ -2,7 +2,6 @@ package start
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 	"github.com/yiozio/game-ui"
@@ -14,13 +13,14 @@ import (
 	"github.com/yiozio/game-ui/example/menu/setting"
 	controlMenu "github.com/yiozio/game-ui/example/menu/setting/control"
 	"image"
-	"strconv"
 )
 
 type Menu struct {
 	game_ui.Window
 	selectedMenuIndex int
 	initialized       bool
+	startFlag         bool
+	exitFlag          bool
 }
 
 func NewStartMenu() *Menu {
@@ -34,7 +34,7 @@ func NewStartMenu() *Menu {
 		Width:            game_ui.Vw(1),
 		Height:           game_ui.Vh(1),
 		PositionVertical: &pos,
-	})}), -1, false}
+	})}), -1, false, false, false}
 }
 
 func (m *Menu) Update(now int64, screenSize image.Point, mode control.Mode, enable bool) {
@@ -86,9 +86,16 @@ func (m *Menu) Update(now int64, screenSize image.Point, mode control.Mode, enab
 			}
 			switch m.selectedMenuIndex {
 			case 0:
+				m.startFlag = !m.startFlag
+				if m.startFlag {
+					titleText.ChangeText("Start")
+				} else {
+					titleText.ChangeText("Sample")
+				}
 			case 1:
 				setting.Opened = controlMenu.NewSettingMenu()
 			case 2:
+				m.exitFlag = !m.exitFlag
 			}
 		}
 	}
@@ -109,7 +116,11 @@ func (m *Menu) Draw(screen *ebiten.Image, now int64, screenSize image.Point, mod
 		for i := range vs {
 			vs[i].ColorR = 0x1 / float32(0xf)
 			vs[i].ColorG = 0x1 / float32(0xf)
-			vs[i].ColorB = 0x1 / float32(0xf)
+			if m.exitFlag {
+				vs[i].ColorB = 0x8 / float32(0xf)
+			} else {
+				vs[i].ColorB = 0x1 / float32(0xf)
+			}
 			vs[i].ColorA = 1
 		}
 		screen.DrawTriangles(vs, is, common.EmptySubImage, &ebiten.DrawTrianglesOptions{
@@ -134,22 +145,12 @@ func (m *Menu) Draw(screen *ebiten.Image, now int64, screenSize image.Point, mod
 				BorderColor:     game_ui.ColorCodeHorizontal(bColor1, bColor2),
 				BackgroundColor: game_ui.ColorCodeHorizontal(bgColor1, bgColor2),
 			})
-			ebitenutil.DebugPrintAt(screen, "on", 300, i*15)
 		} else {
 			startMenuItems[i].PopStyle()
-			ebitenutil.DebugPrintAt(screen, "off", 300, i*15)
 		}
 	}
 
 	m.Window.Draw(screen, 0, 0)
-	for i, view := range startMenuItems {
-		var actionArea = view.Area()
-		ebitenutil.DebugPrintAt(screen,
-			strconv.Itoa(actionArea.Min.X)+","+
-				strconv.Itoa(actionArea.Min.Y)+":"+
-				strconv.Itoa(actionArea.Max.X)+","+
-				strconv.Itoa(actionArea.Max.Y), 100, i*15)
-	}
 
 	if setting.Opened != nil {
 		setting.Opened.Draw(screen, now, screenSize, mode)
