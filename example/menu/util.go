@@ -1,9 +1,10 @@
 package menu
 
 import (
+	"image"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/yiozio/game-ui"
-	"image"
 )
 
 func FindHoveredCell(cells []game_ui.View) (int, game_ui.View) {

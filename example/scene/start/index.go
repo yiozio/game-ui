@@ -1,10 +1,11 @@
 package start
 
 import (
+	"image"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/yiozio/game-ui/example/control"
 	"github.com/yiozio/game-ui/example/menu/start"
-	"image"
 )
 
 type Scene struct {

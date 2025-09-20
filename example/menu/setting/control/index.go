@@ -1,6 +1,8 @@
 package control
 
 import (
+	"image"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/yiozio/game-ui"
@@ -9,7 +11,6 @@ import (
 	actionEffect "github.com/yiozio/game-ui/example/effect/action"
 	"github.com/yiozio/game-ui/example/menu"
 	"github.com/yiozio/game-ui/example/menu/setting"
-	"image"
 )
 
 type Menu struct {

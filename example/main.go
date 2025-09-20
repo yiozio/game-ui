@@ -1,13 +1,14 @@
 package main
 
 import (
+	"image"
+	"time"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/yiozio/game-ui/example/control"
 	"github.com/yiozio/game-ui/example/effect/action"
 	"github.com/yiozio/game-ui/example/scene"
 	"github.com/yiozio/game-ui/example/scene/start"
-	"image"
-	"time"
 )
 
 type Game struct {

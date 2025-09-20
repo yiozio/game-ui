@@ -1,13 +1,15 @@
 package game_ui
 
 import (
+	"image"
+	"image/color"
+	"strings"
+
 	"github.com/hajimehoshi/bitmapfont/v2"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
 	"golang.org/x/image/font"
-	"image"
-	"image/color"
-	"strings"
+	"golang.org/x/image/math/fixed"
 )
 
 type textComponent struct {
@@ -83,20 +85,27 @@ func (t Text) GetSize() image.Point {
 	if t.style.Width != nil {
 		var str = ""
 		var line = ""
+		var lineAdv fixed.Int26_6
+		maxWidthPx := calcSize(t.screenSize, *t.style.Width)
+		maxWidthFixed := fixed.I(maxWidthPx)
 		for _, _char := range t.str {
 			var char = string(_char)
-			if text.BoundString(t.style.Font.face, line+char).Size().X > calcSize(t.screenSize, *t.style.Width) {
+			adv, _ := t.style.Font.face.GlyphAdvance(_char)
+			if lineAdv+adv > maxWidthFixed {
 				if len(line) == 0 {
 					str += line + char + "\n"
 					line = ""
+					lineAdv = 0
 					continue
 				} else {
 					str += line + "\n"
 					line = char
+					lineAdv = adv
 					continue
 				}
 			}
 			line += char
+			lineAdv += adv
 		}
 		if len(line) > 0 {
 			str += line
@@ -105,10 +114,21 @@ func (t Text) GetSize() image.Point {
 	}
 
 	var lineHeightPx = calcSize(t.screenSize, *t.style.LineHeight)
-	var size = text.BoundString(text.FaceWithLineHeight(t.style.Font.face, float64(lineHeightPx)), t.str).Size()
-	var lineCount = strings.Count(t.str, "\n") + 1
+	lines := strings.Split(t.str, "\n")
+	maxW := 0
+	for _, ln := range lines {
+		adv := font.MeasureString(t.style.Font.face, ln)
+		w := adv.Round()
+		if w > maxW {
+			maxW = w
+		}
+	}
+	if maxW > 0 {
+		maxW -= 1 // 既存挙動に合わせる
+	}
+	var lineCount = len(lines)
 	t.size = &image.Point{
-		X: size.X - 1,
+		X: maxW,
 		Y: lineCount * lineHeightPx,
 	}
 	return *t.size

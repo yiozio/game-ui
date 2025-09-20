@@ -1,6 +1,8 @@
 package start
 
 import (
+	"image"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
@@ -12,7 +14,6 @@ import (
 	"github.com/yiozio/game-ui/example/menu"
 	"github.com/yiozio/game-ui/example/menu/setting"
 	controlMenu "github.com/yiozio/game-ui/example/menu/setting/control"
-	"image"
 )
 
 type Menu struct {
@@ -124,7 +125,7 @@ func (m *Menu) Draw(screen *ebiten.Image, now int64, screenSize image.Point, mod
 			vs[i].ColorA = 1
 		}
 		screen.DrawTriangles(vs, is, common.EmptySubImage, &ebiten.DrawTrianglesOptions{
-			FillRule: ebiten.EvenOdd,
+			FillRule: ebiten.FillRuleEvenOdd,
 		})
 	}
 

@@ -1,10 +1,11 @@
 package action
 
 import (
+	"math"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 	"github.com/yiozio/game-ui/example/def/common"
-	"math"
 )
 
 var x, y int = 0, 0
@@ -35,7 +36,7 @@ func DrawEffect(screen *ebiten.Image, now int64) {
 			vs[i].ColorA = 1 - rate
 		}
 		screen.DrawTriangles(vs, is, common.EmptySubImage, &ebiten.DrawTrianglesOptions{
-			FillRule: ebiten.EvenOdd,
+			FillRule: ebiten.FillRuleEvenOdd,
 		})
 	}
 }

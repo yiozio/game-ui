@@ -1,8 +1,9 @@
 package gamepad
 
 import (
-	"github.com/hajimehoshi/ebiten/v2"
 	"strconv"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func ButtonToString(btn ebiten.StandardGamepadButton) string {

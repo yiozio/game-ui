@@ -1,9 +1,10 @@
 package game_ui
 
 import (
-	"github.com/hajimehoshi/ebiten/v2"
 	"image"
 	"image/color"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 var (
