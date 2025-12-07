@@ -1,19 +1,20 @@
 module github.com/yiozio/game-ui
 
-go 1.23.0
+go 1.24.0
 
 require (
-	github.com/hajimehoshi/bitmapfont/v2 v2.2.3
-	github.com/hajimehoshi/ebiten/v2 v2.8.8
-	golang.org/x/image v0.30.0
+	github.com/hajimehoshi/bitmapfont/v4 v4.1.0
+	github.com/hajimehoshi/ebiten/v2 v2.9.4
+	golang.org/x/image v0.33.0
 )
 
 require (
-	github.com/ebitengine/gomobile v0.0.0-20240911145611-4856209ac325 // indirect
+	github.com/ebitengine/gomobile v0.0.0-20250923094054-ea854a63cce1 // indirect
 	github.com/ebitengine/hideconsole v1.0.0 // indirect
-	github.com/ebitengine/purego v0.8.0 // indirect
+	github.com/ebitengine/purego v0.9.0 // indirect
 	github.com/jezek/xgb v1.1.1 // indirect
-	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/sys v0.25.0 // indirect
-	golang.org/x/text v0.28.0 // indirect
+	github.com/pierrec/lz4/v4 v4.1.22 // indirect
+	golang.org/x/sync v0.18.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
 )

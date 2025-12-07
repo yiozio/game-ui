@@ -1,10 +1,11 @@
 package game_ui
 
 import (
-	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/vector"
 	"image"
 	"image/color"
+
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 type viewComponent struct {
@@ -276,38 +277,36 @@ func (v View) Draw(screen *ebiten.Image, x, y int) {
 			path.QuadTo(float32(borderLeft), float32(borderTop), float32(borderLeft+radiusTopLeft), float32(borderTop))
 			path.Close()
 
-			var vs, is = path.AppendVerticesAndIndicesForFilling(nil, nil)
-			var minX, maxX, minY, maxY float32 = 0, 0, 0, 0
-			for i := range vs {
-				if minX < vs[i].DstX {
-					minX = vs[i].DstX
-				}
-				if maxX > vs[i].DstX {
-					maxX = vs[i].DstX
-				}
-				if minY < vs[i].DstY {
-					minY = vs[i].DstY
-				}
-				if maxY > vs[i].DstY {
-					maxY = vs[i].DstY
-				}
+			// Size of gradient rectangle
+			var rectW = float32(size.X - marginWidth)
+			var rectH = float32(size.Y - marginHeight)
+
+			// Vertices for gradient (rectangle)
+			gradientVertices := []ebiten.Vertex{
+				{DstX: 0, DstY: 0, SrcX: 1, SrcY: 1, ColorR: float32(r1) / 0xffff, ColorG: float32(g1) / 0xffff, ColorB: float32(b1) / 0xffff, ColorA: float32(a1) / 0xffff},
+				{DstX: rectW, DstY: 0, SrcX: 1, SrcY: 1, ColorR: float32(r2) / 0xffff, ColorG: float32(g2) / 0xffff, ColorB: float32(b2) / 0xffff, ColorA: float32(a2) / 0xffff},
+				{DstX: 0, DstY: rectH, SrcX: 1, SrcY: 1, ColorR: float32(r4) / 0xffff, ColorG: float32(g4) / 0xffff, ColorB: float32(b4) / 0xffff, ColorA: float32(a4) / 0xffff},
+				{DstX: rectW, DstY: rectH, SrcX: 1, SrcY: 1, ColorR: float32(r3) / 0xffff, ColorG: float32(g3) / 0xffff, ColorB: float32(b3) / 0xffff, ColorA: float32(a3) / 0xffff},
 			}
-			for i := range vs {
-				var rateX = (vs[i].DstX - minX) / (maxX - minX)
-				var rateY = (vs[i].DstY - minY) / (maxY - minY)
-				var rX1, gX1, bX1, aX1 = mixColorCode(r1, g1, b1, a1, r2, g2, b2, a2, rateX)
-				var rX2, gX2, bX2, aX2 = mixColorCode(r4, g4, b4, a4, r3, g3, b3, a3, rateX)
-				var r, g, b, a = mixColorCode(rX1, gX1, bX1, aX1, rX2, gX2, bX2, aX2, rateY)
-				vs[i].DstX += float32(x + marginLeft)
-				vs[i].DstY += float32(y + marginTop)
-				vs[i].ColorR = float32(r) / 0xffff
-				vs[i].ColorG = float32(g) / 0xffff
-				vs[i].ColorB = float32(b) / 0xffff
-				vs[i].ColorA = float32(a) / 0xffff
-			}
-			screen.DrawTriangles(vs, is, emptySubImage, &ebiten.DrawTrianglesOptions{
-				FillRule: ebiten.EvenOdd,
-			})
+			gradientIndices := []uint16{0, 1, 2, 1, 3, 2}
+
+			// Create off-screen buffer
+			maskBuffer := ebiten.NewImage(int(rectW), int(rectH))
+
+			// Draw mask (path shape)
+			drawOp := &vector.DrawPathOptions{}
+			drawOp.ColorScale.ScaleWithColor(color.White)
+			vector.FillPath(maskBuffer, &path, &vector.FillOptions{FillRule: vector.FillRuleEvenOdd}, drawOp)
+
+			// Composite gradient with BlendSourceIn (clip by mask alpha)
+			op := &ebiten.DrawTrianglesOptions{}
+			op.Blend = ebiten.BlendSourceIn
+			maskBuffer.DrawTriangles(gradientVertices, gradientIndices, emptySubImage, op)
+
+			// Draw to screen
+			screenOp := &ebiten.DrawImageOptions{}
+			screenOp.GeoM.Translate(float64(x+marginLeft), float64(y+marginTop))
+			screen.DrawImage(maskBuffer, screenOp)
 		}
 	}
 
@@ -330,38 +329,36 @@ func (v View) Draw(screen *ebiten.Image, x, y int) {
 			path.QuadTo(float32(borderLeft), float32(borderTop), float32(borderLeft+radiusTopLeft), float32(borderTop))
 			path.Close()
 
-			var vs, is = path.AppendVerticesAndIndicesForFilling(nil, nil)
-			var maxX, minX, maxY, minY float32 = 0, 0, 0, 0
-			for i := range vs {
-				if maxX > vs[i].DstX {
-					maxX = vs[i].DstX
-				}
-				if minX < vs[i].DstX {
-					minX = vs[i].DstX
-				}
-				if maxY > vs[i].DstY {
-					maxY = vs[i].DstY
-				}
-				if minY < vs[i].DstY {
-					minY = vs[i].DstY
-				}
+			// Size of background gradient rectangle
+			var bgRectW = float32(size.X - marginWidth)
+			var bgRectH = float32(size.Y - marginHeight)
+
+			// Vertices for gradient (rectangle)
+			bgGradientVertices := []ebiten.Vertex{
+				{DstX: 0, DstY: 0, SrcX: 1, SrcY: 1, ColorR: float32(r1) / 0xffff, ColorG: float32(g1) / 0xffff, ColorB: float32(b1) / 0xffff, ColorA: float32(a1) / 0xffff},
+				{DstX: bgRectW, DstY: 0, SrcX: 1, SrcY: 1, ColorR: float32(r2) / 0xffff, ColorG: float32(g2) / 0xffff, ColorB: float32(b2) / 0xffff, ColorA: float32(a2) / 0xffff},
+				{DstX: 0, DstY: bgRectH, SrcX: 1, SrcY: 1, ColorR: float32(r4) / 0xffff, ColorG: float32(g4) / 0xffff, ColorB: float32(b4) / 0xffff, ColorA: float32(a4) / 0xffff},
+				{DstX: bgRectW, DstY: bgRectH, SrcX: 1, SrcY: 1, ColorR: float32(r3) / 0xffff, ColorG: float32(g3) / 0xffff, ColorB: float32(b3) / 0xffff, ColorA: float32(a3) / 0xffff},
 			}
-			for i := range vs {
-				var rateX = (vs[i].DstX - minX) / (maxX - minX)
-				var rateY = (vs[i].DstY - minY) / (maxY - minY)
-				var rX1, gX1, bX1, aX1 = mixColorCode(r1, g1, b1, a1, r2, g2, b2, a2, rateX)
-				var rX2, gX2, bX2, aX2 = mixColorCode(r4, g4, b4, a4, r3, g3, b3, a3, rateX)
-				var r, g, b, a = mixColorCode(rX1, gX1, bX1, aX1, rX2, gX2, bX2, aX2, rateY)
-				vs[i].DstX += float32(x + marginLeft)
-				vs[i].DstY += float32(y + marginTop)
-				vs[i].ColorR = float32(r) / 0xffff
-				vs[i].ColorG = float32(g) / 0xffff
-				vs[i].ColorB = float32(b) / 0xffff
-				vs[i].ColorA = float32(a) / 0xffff
-			}
-			screen.DrawTriangles(vs, is, emptySubImage, &ebiten.DrawTrianglesOptions{
-				FillRule: ebiten.EvenOdd,
-			})
+			bgGradientIndices := []uint16{0, 1, 2, 1, 3, 2}
+
+			// Create off-screen buffer
+			bgMaskBuffer := ebiten.NewImage(int(bgRectW), int(bgRectH))
+
+			// Draw mask (path shape)
+			bgDrawOp := &vector.DrawPathOptions{}
+			bgDrawOp.ColorScale.ScaleWithColor(color.White)
+			vector.FillPath(bgMaskBuffer, &path, nil, bgDrawOp)
+
+			// Composite gradient with BlendSourceIn (clip by mask alpha)
+			bgOp := &ebiten.DrawTrianglesOptions{}
+			bgOp.Blend = ebiten.BlendSourceIn
+			bgMaskBuffer.DrawTriangles(bgGradientVertices, bgGradientIndices, emptySubImage, bgOp)
+
+			// Draw to screen
+			bgScreenOp := &ebiten.DrawImageOptions{}
+			bgScreenOp.GeoM.Translate(float64(x+marginLeft), float64(y+marginTop))
+			screen.DrawImage(bgMaskBuffer, bgScreenOp)
 		}
 	}
 

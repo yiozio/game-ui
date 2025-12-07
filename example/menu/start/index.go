@@ -2,6 +2,7 @@ package start
 
 import (
 	"image"
+	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -9,7 +10,6 @@ import (
 	"github.com/yiozio/game-ui"
 	"github.com/yiozio/game-ui/example/control"
 	"github.com/yiozio/game-ui/example/control/gamepad"
-	"github.com/yiozio/game-ui/example/def/common"
 	actionEffect "github.com/yiozio/game-ui/example/effect/action"
 	"github.com/yiozio/game-ui/example/menu"
 	"github.com/yiozio/game-ui/example/menu/setting"
@@ -106,27 +106,11 @@ func (m *Menu) Update(now int64, screenSize image.Point, mode control.Mode, enab
 func (m *Menu) Draw(screen *ebiten.Image, now int64, screenSize image.Point, mode control.Mode) {
 	// draw background
 	{
-		var path = &vector.Path{}
-		path.MoveTo(0, 0)
-		path.LineTo(640, 0)
-		path.LineTo(640, 480)
-		path.LineTo(0, 480)
-		path.Close()
-
-		var vs, is = path.AppendVerticesAndIndicesForFilling(nil, nil)
-		for i := range vs {
-			vs[i].ColorR = 0x1 / float32(0xf)
-			vs[i].ColorG = 0x1 / float32(0xf)
-			if m.exitFlag {
-				vs[i].ColorB = 0x8 / float32(0xf)
-			} else {
-				vs[i].ColorB = 0x1 / float32(0xf)
-			}
-			vs[i].ColorA = 1
+		var c = color.RGBA{R: 0x11, G: 0x11, B: 0x11, A: 0xff}
+		if m.exitFlag {
+			c = color.RGBA{R: 0x11, G: 0x11, B: 0x88, A: 0xff}
 		}
-		screen.DrawTriangles(vs, is, common.EmptySubImage, &ebiten.DrawTrianglesOptions{
-			FillRule: ebiten.FillRuleEvenOdd,
-		})
+		vector.FillRect(screen, 0, 0, 640, 480, c, false)
 	}
 
 	var n = 0xe * uint32((now/2)%16)

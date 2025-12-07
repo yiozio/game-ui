@@ -1,8 +1,9 @@
 package game_ui
 
 import (
-	"github.com/hajimehoshi/ebiten/v2"
 	"image"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type windowComponent struct {

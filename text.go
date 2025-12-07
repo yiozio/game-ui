@@ -5,7 +5,7 @@ import (
 	"image/color"
 	"strings"
 
-	"github.com/hajimehoshi/bitmapfont/v2"
+	"github.com/hajimehoshi/bitmapfont/v4"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text"
 	"golang.org/x/image/font"
@@ -138,15 +138,15 @@ func (t Text) Draw(screen *ebiten.Image, x, y int) {
 	t.screenSize = screen.Bounds().Size()
 	var size = t.GetSize()
 	t.drawnArea = image.Rect(x, y, x+size.X, y+size.Y)
-	var font = t.style.Font
+	var textFont = t.style.Font
 	var lineHeight = t.style.LineHeight
 	var lineHeightPx = calcSize(t.screenSize, *lineHeight)
-	x += font.xAdjustment
-	y += lineHeightPx - lineHeightPx/2 + font.yAdjustment
+	x += textFont.xAdjustment
+	y += lineHeightPx - lineHeightPx/2 + textFont.yAdjustment
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(x), float64(y))
 	op.ColorScale.ScaleWithColor(*t.style.Color)
-	text.DrawWithOptions(screen, t.str, text.FaceWithLineHeight(font.face, float64(lineHeightPx)), op)
+	text.DrawWithOptions(screen, t.str, text.FaceWithLineHeight(textFont.face, float64(lineHeightPx)), op)
 }
 
 func (t Text) ChangeText(text string) {
